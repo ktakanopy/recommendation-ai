@@ -1,0 +1,17 @@
+from two_towers.applications.interfaces.schemas import FilterPage, UserList, UserPublic
+from two_towers.domain.ports.repositories.user_repository import UserRepository
+
+
+class GetUsersUseCase:
+    def __init__(self, user_repository: UserRepository):
+        self.user_repository = user_repository
+
+    async def execute(self, filter_page: FilterPage) -> UserList:
+        users = await self.user_repository.get_all(offset=filter_page.offset, limit=filter_page.limit)
+
+        user_publics = []
+        for user in users:
+            if user.id is not None:
+                user_publics.append(UserPublic(id=user.id, username=user.username, email=user.email))
+
+        return UserList(users=user_publics)

@@ -1,0 +1,27 @@
+{
+  "num_epochs": 30,
+  "embedding_size": 128,
+  "layer_sizes": [
+    64
+  ],
+  "device": "cuda",
+  "sample_users": 500,
+  "sentence_model": "all-MiniLM-L6-v2",
+  "models_dir": "models",
+  "model_name": "two_tower_model.pth",
+  "history_name": "training_history.json",
+  "plot_name": "training_curves.png",
+  "retrain": false,
+  "batch_size": 1280,
+  "learning_rate": 0.001,
+  "max_grad_norm": 1.0,
+  "train_split": 0.6,
+  "val_split": 0.2,
+  "test_split": 0.2,
+  "num_negatives": 20,
+  "use_hard_negatives": false,
+  "hard_negative_ratio": 0.7,
+  "loss_type": "explicit_negatives",
+  "num_sampled_negatives": 1000,
+  "dropout_rate": 0.3
+}
