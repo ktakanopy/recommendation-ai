@@ -73,6 +73,14 @@ class CandidateGenerator:
                     for genre in self.movie_to_genres[item]:
                         genre_counts[genre] += 1
             self.user_genre_profiles[user_id] = dict(genre_counts)
+
+    def get_genres_from_movies(self, movies_ids):
+        genre_counts = {}
+        for movie_id in movies_ids:
+            if movie_id in self.movie_to_genres:
+                for genre in self.movie_to_genres[movie_id]:
+                    genre_counts[genre] = genre_counts.get(genre, 0) + 1
+        return genre_counts
             
     @lru_cache(maxsize=1000)
     def get_available_items(self, user_id):
@@ -81,9 +89,9 @@ class CandidateGenerator:
         all_items_set = set(self.all_movieIds)
         return list(all_items_set - interacted_items)
     
-    def generate_popularity_candidates(self, user_id, num_candidates=100):
+    def generate_popularity_candidates(self, user_id, user_available_items=None, num_candidates=100):
         """Optimized popularity-based candidate generation"""
-        available_items = set(self.get_available_items(user_id))
+        available_items = set(self.get_available_items(user_id)) if user_available_items is None else user_available_items
         
         candidates = []
         for item in self.popular_items:
@@ -121,13 +129,13 @@ class CandidateGenerator:
         sorted_candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
         return [item for item, score in sorted_candidates[:num_candidates]]
     
-    def generate_content_candidates(self, user_id, num_candidates=100):
+    def generate_content_candidates(self, user_id, passed_user_genres=None, user_available_items=None, num_candidates=100):
         """Optimized content-based filtering using pre-computed genre profiles"""
-        user_genres = self.user_genre_profiles.get(user_id, {})
+        user_genres = self.user_genre_profiles.get(user_id, {}) if passed_user_genres is None else passed_user_genres
         if not user_genres:
             return self.get_available_items(user_id)[:num_candidates]
         
-        available_items = set(self.get_available_items(user_id))
+        available_items = set(self.get_available_items(user_id)) if user_available_items is None else user_available_items
         
         # Score items by genre overlap
         candidate_scores = {}
@@ -146,9 +154,9 @@ class CandidateGenerator:
     def generate_hybrid_candidates(self, user_id, num_candidates=100):
         """Optimized hybrid candidate generation"""
         # Get candidates from each method
-        pop_candidates = self.generate_popularity_candidates(user_id, num_candidates//3)
-        collab_candidates = self.generate_collaborative_candidates(user_id, num_candidates//3)
-        content_candidates = self.generate_content_candidates(user_id, num_candidates//3)
+        pop_candidates = self.generate_popularity_candidates(user_id, num_candidates=num_candidates//3)
+        collab_candidates = self.generate_collaborative_candidates(user_id, num_candidates=num_candidates//3)
+        content_candidates = self.generate_content_candidates(user_id, num_candidates=num_candidates//3)
         
         # Combine and deduplicate using set operations
         hybrid_candidates = list(dict.fromkeys(pop_candidates + collab_candidates + content_candidates))
@@ -169,13 +177,13 @@ class CandidateGenerator:
     def generate_candidates(self, user_id, method="hybrid", num_candidates=100):
         """Main interface for candidate generation"""
         if method == "popularity":
-            return self.generate_popularity_candidates(user_id, num_candidates)
+            return self.generate_popularity_candidates(user_id, num_candidates=num_candidates)
         elif method == "collaborative":
-            return self.generate_collaborative_candidates(user_id, num_candidates)
+            return self.generate_collaborative_candidates(user_id, num_candidates=num_candidates)
         elif method == "content":
-            return self.generate_content_candidates(user_id, num_candidates)
+            return self.generate_content_candidates(user_id, num_candidates=num_candidates)
         elif method == "hybrid":
-            return self.generate_hybrid_candidates(user_id, num_candidates)
+            return self.generate_hybrid_candidates(user_id, num_candidates=num_candidates)
         else:
             # Random fallback
             available_items = self.get_available_items(user_id)

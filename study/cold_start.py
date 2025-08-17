@@ -1,4 +1,6 @@
 import torch
+import torch.nn.functional as F
+from collections import Counter
 
 class ColdStartRecommender:
     """
@@ -8,43 +10,22 @@ class ColdStartRecommender:
     by leveraging user demographics, initial ratings, and content-based filtering.
     """
     
-    def __init__(self, trained_model, feature_processor, candidate_generator, movies_df):
+    def __init__(self, trained_model, feature_processor, candidate_generator, movies_df, liked_threshold=4):
         self.model = trained_model
         self.feature_processor = feature_processor
         self.candidate_generator = candidate_generator
         self.movies_df = movies_df
         self.device = next(trained_model.parameters()).device
+        self.liked_threshold = liked_threshold
         
-    def create_user_features(self, user_demographics):
-        """
-        Create user feature vector from demographics
-        
-        Args:
-            user_demographics: dict with keys: 'gender', 'age', 'occupation'
-                - gender: 'M' or 'F'
-                - age: int (1, 18, 25, 35, 45, 50, 56)
-                - occupation: int (0-20)
-        
-        Returns:
-            torch.Tensor: User feature vector
-        """
-        gender_encoded = 1.0 if user_demographics['gender'] == 'M' else 0.0
-        
-        # Create age one-hot (7 categories)
-        age_categories = [1, 18, 25, 35, 45, 50, 56]
-        age_onehot = [1.0 if user_demographics['age'] == cat else 0.0 for cat in age_categories]
-        
-        # Create occupation one-hot (21 categories: 0-20)
-        occupation_onehot = [1.0 if user_demographics['occupation'] == i else 0.0 for i in range(21)]
-        
-        # Combine all features
-        feature_vector = [gender_encoded] + age_onehot + occupation_onehot
-        
-        return torch.tensor(feature_vector, dtype=torch.float32)
+
     
-    def get_similar_users_by_demographics(self, user_demographics, top_k=50):
+    def get_similar_users_neural_embedding(self, user_demographics, top_k=50):
         """
-        Find users with similar demographics for collaborative filtering
+        Find users with similar demographics using neural network embeddings
+        
+        Uses the trained NCF model's user feature processing layers to compute
+        user embeddings and find similar users based on cosine similarity.
         
         Args:
             user_demographics: dict with user demographic info
@@ -53,39 +34,67 @@ class ColdStartRecommender:
         Returns:
             list: user_ids of similar users
         """
+        
+        # Get the new user's feature vector and neural representation
+        new_user_features = self.feature_processor.process_user_demographics(user_demographics)
+        new_user_features = new_user_features.detach().clone().unsqueeze(0).to(self.device)
+        
+        # Get neural representation using the trained model's user processing layers
+        self.model.eval()
+        with torch.no_grad():
+            # Process through the trained neural network layers (same as in NCF forward pass)
+            user_x = self.model.dropout(torch.relu(self.model.user_bn1(self.model.user_fc1(new_user_features))))
+            new_user_embedding = torch.relu(self.model.user_bn2(self.model.user_fc2(user_x)))
+        
+        # Get embeddings for all existing users
         similar_users = []
+        existing_user_ids = list(self.feature_processor.user_features_cache.keys())
         
-        # Simple demographic matching - can be made more sophisticated
-        for user_id, cached_features in self.feature_processor.user_features_cache.items():
-            # Check gender match (first feature)
-            gender_match = (cached_features[0].item() == (1.0 if user_demographics['gender'] == 'M' else 0.0))
+        # Process existing users in batches for efficiency
+        batch_size = 128
+        for i in range(0, len(existing_user_ids), batch_size):
+            batch_user_ids = existing_user_ids[i:i + batch_size]
+            batch_features = []
             
-            # Check age category match (positions 1-7)
-            age_categories = [1, 18, 25, 35, 45, 50, 56]
-            user_age_idx = age_categories.index(user_demographics['age']) if user_demographics['age'] in age_categories else -1
-            if user_age_idx >= 0:
-                age_match = cached_features[1 + user_age_idx].item() == 1.0
-            else:
-                age_match = False
+            for user_id in batch_user_ids:
+                cached_features = self.feature_processor.user_features_cache[user_id]
+                batch_features.append(cached_features)
             
-            # Check occupation match (positions 8-28)
-            occ_match = False
-            if 0 <= user_demographics['occupation'] <= 20:
-                occ_match = cached_features[8 + user_demographics['occupation']].item() == 1.0
+            # Convert to tensor and move to device
+            batch_features = torch.stack(batch_features).to(self.device)
             
-            # Score based on matches (prioritize age and occupation)
-            score = 0
-            if gender_match: score += 1
-            if age_match: score += 2
-            if occ_match: score += 3
-            
-            if score >= 2:  # Require at least age or occupation match
-                similar_users.append((user_id, score))
+            # Get neural embeddings for this batch
+            with torch.no_grad():
+                batch_x = self.model.dropout(torch.relu(self.model.user_bn1(self.model.user_fc1(batch_features))))
+                batch_embeddings = torch.relu(self.model.user_bn2(self.model.user_fc2(batch_x)))
+                
+                # Compute cosine similarity with the new user
+                similarities = F.cosine_similarity(new_user_embedding, batch_embeddings, dim=1)
+                
+                # Store results
+                for j, user_id in enumerate(batch_user_ids):
+                    similarity_score = similarities[j].item()
+                    similar_users.append((user_id, similarity_score))
         
-        # Sort by score and return top_k
+        # Sort by similarity score (descending) and return top_k
         similar_users.sort(key=lambda x: x[1], reverse=True)
         return [user_id for user_id, _ in similar_users[:top_k]]
-    
+
+    def get_similar_user_candidates(self, user_demographics, top_k=10, num_candidates=100):
+        similar_users = self.get_similar_users_neural_embedding(user_demographics)
+        candidates = []
+        if similar_users:
+            similar_user_movies = []
+            for similar_user_id in similar_users[:top_k]:  # Top 10 similar users
+                user_movies = self.candidate_generator.user_interacted_items.get(similar_user_id, [])
+                similar_user_movies.extend(user_movies)
+            
+            movie_counts = Counter(similar_user_movies)
+            demographic_candidates = [movie_id for movie_id, _ in movie_counts.most_common(num_candidates//2)]
+            candidates.extend(demographic_candidates)
+        return candidates
+
+
     def generate_cold_start_candidates(self, user_demographics, user_ratings=None, num_candidates=100):
         """
         Generate candidate movies for cold start scenario
@@ -102,67 +111,37 @@ class ColdStartRecommender:
         
         if user_ratings is None or len(user_ratings) == 0:
             # Pure cold start - no ratings yet
-            # Use popularity + demographic-based recommendations
+            # Use hybrid (popularity + collaborative + content) + demographic-based recommendations
             
-            # Get popular movies
-            popular_candidates = self.candidate_generator.generate_popularity_candidates(
+            # Get hybrid candidates (popularity + collaborative + content)
+            hybrid_candidates = self.candidate_generator.generate_hybrid_candidates(
                 user_id=-1,  # dummy user_id
                 num_candidates=num_candidates//2
             )
-            candidates.extend(popular_candidates)
+            candidates.extend(hybrid_candidates)
             
-            # Get recommendations based on similar users' preferences
-            similar_users = self.get_similar_users_by_demographics(user_demographics)
+            # Get recommendations based on similar users' preferences (using neural embeddings)
+            similar_users = self.get_similar_users_neural_embedding(user_demographics)
             if similar_users:
-                # Get popular movies among similar users
                 similar_user_movies = []
                 for similar_user_id in similar_users[:10]:  # Top 10 similar users
                     user_movies = self.candidate_generator.user_interacted_items.get(similar_user_id, [])
                     similar_user_movies.extend(user_movies)
                 
-                # Count frequency and get most popular among similar users
-                from collections import Counter
                 movie_counts = Counter(similar_user_movies)
                 demographic_candidates = [movie_id for movie_id, _ in movie_counts.most_common(num_candidates//2)]
                 candidates.extend(demographic_candidates)
         
         else:
-            # Warm cold start - user has some initial ratings
-            # Use content-based recommendations based on liked movies
-            
-            liked_movies = [movie_id for movie_id, rating in user_ratings if rating >= 4]
-            
-            if liked_movies:
-                # Content-based recommendations using movie genres
-                content_candidates = []
-                
-                # Get genres of liked movies
-                liked_genres = []
-                for movie_id in liked_movies:
-                    if movie_id in self.candidate_generator.movie_to_genres:
-                        liked_genres.extend(self.candidate_generator.movie_to_genres[movie_id])
-                
-                # Count genre preferences
-                from collections import Counter
-                genre_preferences = Counter(liked_genres)
-                
-                # Find movies with similar genres
-                for movie_id, genres in self.candidate_generator.movie_to_genres.items():
-                    if movie_id not in liked_movies:  # Don't recommend already rated movies
-                        score = sum(genre_preferences.get(genre, 0) for genre in genres)
-                        if score > 0:
-                            content_candidates.append((movie_id, score))
-                
-                # Sort by content score and take top candidates
-                content_candidates.sort(key=lambda x: x[1], reverse=True)
-                candidates.extend([movie_id for movie_id, _ in content_candidates[:num_candidates//2]])
-            
-            # Add some popular movies as backup
-            popular_candidates = self.candidate_generator.generate_popularity_candidates(
-                user_id=-1,
-                num_candidates=num_candidates//2
-            )
+            liked_movies = [movie_id for movie_id, rating in user_ratings if rating >= self.liked_threshold]
+            user_similar_candidates = self.get_similar_user_candidates(user_demographics, top_k=10, num_candidates=num_candidates//3)
+            popular_candidates = self.candidate_generator.generate_popularity_candidates(user_id=-1, num_candidates=num_candidates//3, user_available_items=liked_movies)
+            user_genres = self.candidate_generator.get_genres_from_movies(liked_movies)
+            content_candidates = self.candidate_generator.generate_content_candidates(user_id=-1, num_candidates=num_candidates//3, user_available_items=liked_movies, passed_user_genres=user_genres)
+            candidates.extend(user_similar_candidates)
             candidates.extend(popular_candidates)
+            candidates.extend(content_candidates)
+            
         
         # Remove duplicates while preserving order
         seen = set()
@@ -186,9 +165,9 @@ class ColdStartRecommender:
         Returns:
             list: list of (movie_id, title, predicted_score) tuples
         """
-        # Create user feature vector
-        user_features = self.create_user_features(user_demographics)
-        user_features = user_features.unsqueeze(0).to(self.device)  # Add batch dimension
+        # Create user feature vector using FeatureProcessor
+        user_features = self.feature_processor.process_user_demographics(user_demographics)
+        user_features = user_features.detach().clone().unsqueeze(0).to(self.device)  # Add batch dimension
         
         # Generate candidate movies
         candidates = self.generate_cold_start_candidates(
@@ -237,8 +216,8 @@ class ColdStartRecommender:
         Returns:
             list: list of (movie_id, title, genres) tuples
         """
-        # Get popular movies from different genres for diversity
-        popular_movies = self.candidate_generator.generate_popularity_candidates(
+        # Get hybrid candidates from different genres for diversity
+        popular_movies = self.candidate_generator.generate_hybrid_candidates(
             user_id=-1, 
             num_candidates=100
         )
@@ -261,21 +240,29 @@ class ColdStartRecommender:
         
         # Select diverse movies (one from each genre initially)
         used_genres = set()
+        used_movie_ids = set()
         for genre, movies in genre_movies.items():
             if len(selected_movies) < num_movies and genre not in used_genres:
-                selected_movies.append(movies[0])  # Take the most popular from this genre
-                used_genres.add(genre)
+                # Find the first movie in this genre that hasn't been selected yet
+                for movie_tuple in movies:
+                    movie_id = movie_tuple[0]
+                    if movie_id not in used_movie_ids:
+                        selected_movies.append(movie_tuple)
+                        used_genres.add(genre)
+                        used_movie_ids.add(movie_id)
+                        break
         
         # Fill remaining slots with most popular movies
         for movie_id in popular_movies:
             if len(selected_movies) >= num_movies:
                 break
             
-            movie_title = self.movies_df[self.movies_df['movie_id'] == movie_id]['title'].iloc[0]
-            movie_genres_str = self.movies_df[self.movies_df['movie_id'] == movie_id]['genres'].iloc[0]
-            
-            movie_tuple = (movie_id, movie_title, movie_genres_str)
-            if movie_tuple not in selected_movies:
+            if movie_id not in used_movie_ids:
+                movie_title = self.movies_df[self.movies_df['movie_id'] == movie_id]['title'].iloc[0]
+                movie_genres_str = self.movies_df[self.movies_df['movie_id'] == movie_id]['genres'].iloc[0]
+                
+                movie_tuple = (movie_id, movie_title, movie_genres_str)
                 selected_movies.append(movie_tuple)
+                used_movie_ids.add(movie_id)
         
         return selected_movies[:num_movies]

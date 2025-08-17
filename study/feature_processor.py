@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import torch
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # Feature preprocessing functions
 class FeatureProcessor:
@@ -14,18 +15,38 @@ class FeatureProcessor:
         self.user_features_cache = {}
         self.movie_features_cache = {}
         
+        # sklearn encoders for user features
+        self.gender_encoder = LabelEncoder()
+        self.age_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        self.occupation_encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+        self.encoders_fitted = False
+        
     def prepare_user_features(self, users_df):
         """Prepare user features: gender, age, occupation one-hot encoding"""
         print("Preparing user features...")
         
-        # Gender encoding (M=1, F=0)
-        gender_encoded = (users_df['gender'] == 'M').astype(float)
+        # Fit and transform using sklearn encoders
+        print("Fitting sklearn encoders...")
         
-        # Age one-hot encoding (7 categories: 1, 18, 25, 35, 45, 50, 56)
-        age_onehot = pd.get_dummies(users_df['age'], prefix='age').astype(float)
+        # Gender encoding (M=1, F=0) using LabelEncoder
+        gender_encoded = self.gender_encoder.fit_transform(users_df['gender'].values).astype(float)
         
-        # Occupation one-hot encoding (0-20)
-        occupation_onehot = pd.get_dummies(users_df['occupation'], prefix='occ').astype(float)
+        # Age one-hot encoding using OneHotEncoder
+        age_onehot = self.age_encoder.fit_transform(users_df['age'].values.reshape(-1, 1))
+        
+        # Occupation one-hot encoding using OneHotEncoder  
+        occupation_onehot = self.occupation_encoder.fit_transform(users_df['occupation'].values.reshape(-1, 1))
+        
+        # Mark encoders as fitted
+        self.encoders_fitted = True
+        
+        print(f"Gender categories: {self.gender_encoder.classes_}")
+        print(f"Age categories: {self.age_encoder.categories_[0]}")
+        print(f"Occupation categories: {self.occupation_encoder.categories_[0]}")
+        
+        # Convert to DataFrames for consistency with original format
+        age_onehot_df = pd.DataFrame(age_onehot, columns=[f'age_{cat}' for cat in self.age_encoder.categories_[0]])
+        occupation_onehot_df = pd.DataFrame(occupation_onehot, columns=[f'occ_{cat}' for cat in self.occupation_encoder.categories_[0]])
         
         # Combine all user features into a single DataFrame
         feature_columns = ['user_id']
@@ -33,17 +54,17 @@ class FeatureProcessor:
         
         # Add gender
         feature_columns.append('gender')
-        feature_data.append(gender_encoded.values)
+        feature_data.append(gender_encoded)
         
         # Add age features
-        for col in age_onehot.columns:
+        for col in age_onehot_df.columns:
             feature_columns.append(col)
-            feature_data.append(age_onehot[col].values)
+            feature_data.append(age_onehot_df[col].values)
         
         # Add occupation features
-        for col in occupation_onehot.columns:
+        for col in occupation_onehot_df.columns:
             feature_columns.append(col)
-            feature_data.append(occupation_onehot[col].values)
+            feature_data.append(occupation_onehot_df[col].values)
         
         # Create feature matrix
         feature_matrix = np.column_stack(feature_data)
@@ -131,3 +152,50 @@ class FeatureProcessor:
     def get_movie_features(self, movie_id):
         """Get cached movie features"""
         return self.movie_features_cache.get(movie_id, torch.zeros(self.movie_feature_dim))
+    
+    def process_user_demographics(self, user_demographics):
+        """
+        Process user demographics into feature vector format using fitted sklearn encoders
+        
+        Args:
+            user_demographics: dict with keys: 'gender', 'age', 'occupation'
+                - gender: 'M' or 'F'
+                - age: int (age category from training data)
+                - occupation: int (occupation code from training data)
+        
+        Returns:
+            torch.Tensor: User feature vector (same format as cached features)
+        """
+        if not self.encoders_fitted:
+            raise ValueError("Encoders not fitted. Call prepare_user_features first.")
+        
+        # Gender encoding using fitted LabelEncoder
+        gender_encoded = self.gender_encoder.transform([user_demographics['gender']])[0].astype(float)
+        
+        # Age one-hot encoding using fitted OneHotEncoder
+        age_onehot = self.age_encoder.transform([[user_demographics['age']]])[0]
+        
+        # Occupation one-hot encoding using fitted OneHotEncoder
+        occupation_onehot = self.occupation_encoder.transform([[user_demographics['occupation']]])[0]
+        
+        # Combine all features (same order as prepare_user_features)
+        feature_vector = np.concatenate([[gender_encoded], age_onehot, occupation_onehot])
+        
+        return torch.tensor(feature_vector, dtype=torch.float32)
+    
+    def get_encoder_info(self):
+        """
+        Get information about the fitted encoders
+        
+        Returns:
+            dict: Information about encoders and their categories
+        """
+        if not self.encoders_fitted: # TODO: remove this gambiarra
+            return {"error": "Encoders not fitted yet"}
+        
+        return {
+            "gender_classes": self.gender_encoder.classes_.tolist(),
+            "age_categories": self.age_encoder.categories_[0].tolist(),
+            "occupation_categories": self.occupation_encoder.categories_[0].tolist(),
+            "total_features": 1 + len(self.age_encoder.categories_[0]) + len(self.occupation_encoder.categories_[0])
+        }
