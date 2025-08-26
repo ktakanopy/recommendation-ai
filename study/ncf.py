@@ -110,8 +110,6 @@ class NCF(nn.Module):
             'state_dict': self.state_dict(),
             'user_feature_dim': self.user_feature_dim,
             'movie_feature_dim': self.movie_feature_dim,
-            'negative_method': self.negative_method,
-            'sampling_strategy': self.sampling_strategy,
             'model_type': 'NCF'
         }
         torch.save(model_state, filepath)
@@ -160,7 +158,7 @@ class NCF(nn.Module):
             raise RuntimeError(f"Error loading model weights: {str(e)}")
     
     @classmethod
-    def load_model(cls, filepath, ratings, feature_processor, candidate_generator):
+    def load_model(cls, filepath, ratings, feature_processor, precomputed_candidates, num_negatives):
         """
         Class method to load a complete model from saved weights
         
@@ -182,8 +180,8 @@ class NCF(nn.Module):
                 movie_feature_dim=checkpoint['movie_feature_dim'],
                 ratings=ratings,
                 feature_processor=feature_processor,
-                candidate_generator=candidate_generator,
-                negative_method=checkpoint.get('negative_method', 'hybrid'),
+                precomputed_candidates=precomputed_candidates,
+                num_negatives=num_negatives,
             )
             
             # Load weights
