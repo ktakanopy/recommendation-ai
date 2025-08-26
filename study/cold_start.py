@@ -217,7 +217,7 @@ class ColdStartRecommender:
             list: list of (movie_id, title, genres) tuples
         """
         # Get hybrid candidates from different genres for diversity
-        popular_movies = self.candidate_generator.generate_hybrid_candidates(
+        popular_movies = self.candidate_generator.generate_popularity_candidates(
             user_id=-1, 
             num_candidates=100
         )

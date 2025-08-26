@@ -8,12 +8,13 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # Feature preprocessing functions
 class FeatureProcessor:
-    def __init__(self):
+    def __init__(self, debug=False):
         self.user_encoders = {}
         self.movie_encoders = {}
         self.sentence_model = None
         self.user_features_cache = {}
         self.movie_features_cache = {}
+        self.debug = debug
         
         # sklearn encoders for user features
         self.gender_encoder = LabelEncoder()
@@ -23,10 +24,12 @@ class FeatureProcessor:
         
     def prepare_user_features(self, users_df):
         """Prepare user features: gender, age, occupation one-hot encoding"""
-        print("Preparing user features...")
+        if self.debug:
+            print("Preparing user features...")
         
         # Fit and transform using sklearn encoders
-        print("Fitting sklearn encoders...")
+        if self.debug:
+            print("Fitting sklearn encoders...")
         
         # Gender encoding (M=1, F=0) using LabelEncoder
         gender_encoded = self.gender_encoder.fit_transform(users_df['gender'].values).astype(float)
@@ -40,9 +43,10 @@ class FeatureProcessor:
         # Mark encoders as fitted
         self.encoders_fitted = True
         
-        print(f"Gender categories: {self.gender_encoder.classes_}")
-        print(f"Age categories: {self.age_encoder.categories_[0]}")
-        print(f"Occupation categories: {self.occupation_encoder.categories_[0]}")
+        if self.debug:
+            print(f"Gender categories: {self.gender_encoder.classes_}")
+            print(f"Age categories: {self.age_encoder.categories_[0]}")
+            print(f"Occupation categories: {self.occupation_encoder.categories_[0]}")
         
         # Convert to DataFrames for consistency with original format
         age_onehot_df = pd.DataFrame(age_onehot, columns=[f'age_{cat}' for cat in self.age_encoder.categories_[0]])
@@ -75,9 +79,10 @@ class FeatureProcessor:
             if col != 'user_id':
                 user_features[col] = user_features[col].astype(float)
         
-        print(f"User features shape: {user_features.shape}")
-        print(f"User feature columns: {list(user_features.columns)}")
-        print(f"User feature dtypes:\n{user_features.dtypes}")
+        if self.debug:
+            print(f"User features shape: {user_features.shape}")
+            print(f"User feature columns: {list(user_features.columns)}")
+            print(f"User feature dtypes:\n{user_features.dtypes}")
         
         # Cache features for quick lookup (keep on CPU)
         for _, row in user_features.iterrows():
@@ -93,11 +98,13 @@ class FeatureProcessor:
     
     def prepare_movie_features(self, movies_df, device='cpu'):
         """Prepare movie features using sentence transformers for title and genres"""
-        print("Preparing movie features with sentence transformers...")
+        if self.debug:
+            print("Preparing movie features with sentence transformers...")
         
         # Initialize sentence transformer
         if self.sentence_model is None:
-            print("Loading sentence transformer model...")
+            if self.debug:
+                print("Loading sentence transformer model...")
             self.sentence_model = SentenceTransformer('all-MiniLM-L6-v2', device=device)
         
         # Encode movie titles
@@ -123,17 +130,19 @@ class FeatureProcessor:
         # Concatenate title and genre embeddings
         movie_embeddings = torch.cat([title_embeddings, genre_embeddings], dim=1)
         
-        print(f"Title embeddings shape: {title_embeddings.shape}")
-        print(f"Genre embeddings shape: {genre_embeddings.shape}")
-        print(f"Combined movie embeddings shape: {movie_embeddings.shape}")
+        if self.debug:
+            print(f"Title embeddings shape: {title_embeddings.shape}")
+            print(f"Genre embeddings shape: {genre_embeddings.shape}")
+            print(f"Combined movie embeddings shape: {movie_embeddings.shape}")
         
         # Normalize the embeddings for better training stability
         print("Normalizing movie embeddings...")
         movie_embeddings_normalized = F.normalize(movie_embeddings, p=2, dim=1)
         
         # Print normalization stats
-        print(f"Original embeddings - mean: {movie_embeddings.mean().item():.4f}, std: {movie_embeddings.std().item():.4f}")
-        print(f"Normalized embeddings - mean: {movie_embeddings_normalized.mean().item():.4f}, std: {movie_embeddings_normalized.std().item():.4f}")
+        if self.debug:
+            print(f"Original embeddings - mean: {movie_embeddings.mean().item():.4f}, std: {movie_embeddings.std().item():.4f}")
+            print(f"Normalized embeddings - mean: {movie_embeddings_normalized.mean().item():.4f}, std: {movie_embeddings_normalized.std().item():.4f}")
         
         # Cache features for quick lookup (move to CPU for storage)
         for idx, row in movies_df.iterrows():
@@ -142,7 +151,8 @@ class FeatureProcessor:
             self.movie_features_cache[movie_id] = movie_embeddings_normalized[idx].cpu()
             
         self.movie_feature_dim = movie_embeddings_normalized.shape[1]
-        print(f"Movie feature dimension: {self.movie_feature_dim}")
+        if self.debug:
+            print(f"Movie feature dimension: {self.movie_feature_dim}")
         return movie_embeddings_normalized
     
     def get_user_features(self, user_id):

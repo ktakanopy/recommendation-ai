@@ -21,8 +21,8 @@ class NCF(nn.Module):
             sampling_strategy (str): Strategy for negative sampling
     """
     
-    def __init__(self, user_feature_dim, movie_feature_dim, ratings, feature_processor, candidate_generator, 
-                 negative_method="hybrid", sampling_strategy="unique_per_user"):
+    def __init__(self, user_feature_dim, movie_feature_dim, ratings, feature_processor, precomputed_candidates, 
+                 num_negatives=4):
         super().__init__()
         
         # Store parameters
@@ -30,10 +30,8 @@ class NCF(nn.Module):
         self.movie_feature_dim = movie_feature_dim
         self.ratings = ratings
         self.feature_processor = feature_processor
-        self.candidate_generator = candidate_generator
-        self.negative_method = negative_method
-        self.sampling_strategy = sampling_strategy
-        
+        self.precomputed_candidates = precomputed_candidates
+        self.num_negatives = num_negatives
         # Feature processing layers with batch normalization
         self.user_fc1 = nn.Linear(user_feature_dim, 128)
         self.user_bn1 = nn.BatchNorm1d(128)
@@ -91,15 +89,13 @@ class NCF(nn.Module):
         loss = nn.BCELoss()(predicted_labels, labels.view(-1, 1).float())
         return loss
 
-    def get_dataloader(self, batch_size=512, num_workers=4, num_negatives=4):
+    def get_dataloader(self, batch_size=512, num_workers=4):
         """Get DataLoader with optimized negative sampling"""
         dataset = MovieLensTrainDataset(
             self.ratings, 
-            self.candidate_generator,
+            self.precomputed_candidates,
             self.feature_processor,
-            num_negatives=num_negatives,
-            negative_method=self.negative_method,
-            sampling_strategy=self.sampling_strategy
+            num_negatives=self.num_negatives,
         )
         return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
     
@@ -188,7 +184,6 @@ class NCF(nn.Module):
                 feature_processor=feature_processor,
                 candidate_generator=candidate_generator,
                 negative_method=checkpoint.get('negative_method', 'hybrid'),
-                sampling_strategy=checkpoint.get('sampling_strategy', 'unique_per_user')
             )
             
             # Load weights

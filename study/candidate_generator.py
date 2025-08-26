@@ -3,8 +3,9 @@ from collections import defaultdict
 import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
+from tqdm import tqdm
 
-# Global data structures for fast candidate generation
+# global data structures for fast candidate generation
 class CandidateGenerator:
     def __init__(self, train_ratings, movies, all_movieIds):
         self.train_ratings = train_ratings
@@ -58,14 +59,12 @@ class CandidateGenerator:
         self.user_genre_profiles = {}
         all_genres = set()
         
-        # Extract all unique genres
         for genres_list in self.movie_to_genres.values():
             all_genres.update(genres_list)
         
         self.all_genres = list(all_genres)
         self.genre_to_idx = {genre: idx for idx, genre in enumerate(self.all_genres)}
         
-        # Build user genre profiles
         for user_id, items in self.user_interacted_items.items():
             genre_counts = defaultdict(int)
             for item in items:
@@ -191,3 +190,84 @@ class CandidateGenerator:
                                      size=min(num_candidates, len(available_items)), 
                                      replace=False)
             return [available_items[i] for i in indices]
+    
+    def generate_validation_candidates(self, user_id, training_ratings, method="hybrid", num_candidates=100):
+        """
+        Generate candidates for validation, excluding items the user has already rated in training
+        
+        Args:
+            user_id: User ID
+            training_ratings: DataFrame containing training ratings
+            method: Candidate generation method
+            num_candidates: Number of candidates to generate
+            
+        Returns:
+            List of candidate movie IDs excluding training items
+        """
+        # Get user's training interactions
+        user_training_items = set(training_ratings[training_ratings['user_id'] == user_id]['movie_id'].tolist())
+        
+        # Generate candidates using the specified method
+        if method == "popularity":
+            candidates = self.generate_popularity_candidates(user_id, num_candidates=num_candidates * 2)
+        elif method == "collaborative":
+            candidates = self.generate_collaborative_candidates(user_id, num_candidates=num_candidates * 2)
+        elif method == "content":
+            candidates = self.generate_content_candidates(user_id, num_candidates=num_candidates * 2)
+        elif method == "hybrid":
+            candidates = self.generate_hybrid_candidates(user_id, num_candidates=num_candidates * 2)
+        else:
+            # Random fallback
+            available_items = self.get_available_items(user_id)
+            candidates = available_items[:num_candidates * 2]
+        
+        # Filter out training items
+        validation_candidates = [item for item in candidates if item not in user_training_items]
+        
+        # Return requested number of candidates (or all available if fewer)
+        return validation_candidates[:num_candidates]
+
+    
+    def precompute_training_candidates(self, training_ratings, method="hybrid", num_candidates=100):
+        """
+        Precompute training candidates for all users in training set
+        """
+        users = training_ratings['user_id'].unique()
+        training_candidates = {}
+        
+        print(f"Precomputing training candidates for {len(users)} users...")
+        
+        for user_id in tqdm(users, desc="Precomputing training candidates"):
+            candidates = self.generate_candidates(user_id, method, num_candidates)
+            training_candidates[user_id] = candidates
+        
+        print(f"Precomputed training candidates for {len(training_candidates)} users")
+        return training_candidates
+    
+    
+    def precompute_validation_candidates(self, validation_ratings, training_ratings, method="hybrid", num_candidates=100):
+        """
+        Precompute validation candidates for all users in validation set, excluding training items
+        
+        Args:
+            validation_ratings: DataFrame containing validation ratings
+            training_ratings: DataFrame containing training ratings
+            method: Candidate generation method
+            num_candidates: Number of candidates per user
+            
+        Returns:
+            Dict of {user_id: [candidate_items]} for validation
+        """
+        users = validation_ratings['user_id'].unique()
+        validation_candidates = {}
+        
+        print(f"Precomputing validation candidates for {len(users)} users...")
+        
+        for user_id in tqdm(users, desc="Precomputing validation candidates"):
+            candidates = self.generate_validation_candidates(
+                user_id, training_ratings, method, num_candidates
+            )
+            validation_candidates[user_id] = candidates
+        
+        print(f"Precomputed validation candidates for {len(validation_candidates)} users")
+        return validation_candidates
