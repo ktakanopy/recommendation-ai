@@ -1,4 +1,3 @@
-
 import pytest
 
 from neural_recommendation.applications.interfaces.schemas import UserPublic, UserSchema
@@ -43,9 +42,7 @@ class TestCreateUserUseCase:
         assert result.email == domain_user.email
 
         # Verify interactions
-        mock_user_repository.get_by_username_or_email.assert_called_once_with(
-            domain_user.username, domain_user.email
-        )
+        mock_user_repository.get_by_username_or_email.assert_called_once_with(domain_user.username, domain_user.email)
         mock_auth_service.hash_password.assert_called_once_with(user_schema.password)
         mock_user_repository.create.assert_called_once()
 
@@ -55,9 +52,7 @@ class TestCreateUserUseCase:
     ):
         """Test user creation fails when username already exists"""
         # Arrange
-        existing_user = user_factory.create_domain_user(
-            id=1, email="different@example.com"
-        )
+        existing_user = user_factory.create_domain_user(id=1, email="different@example.com")
         mock_user_repository.get_by_username_or_email.return_value = existing_user
 
         # Act & Assert
@@ -74,9 +69,7 @@ class TestCreateUserUseCase:
     ):
         """Test user creation fails when email already exists"""
         # Arrange
-        existing_user = user_factory.create_domain_user(
-            id=1, username="differentuser"
-        )
+        existing_user = user_factory.create_domain_user(id=1, username="differentuser")
         mock_user_repository.get_by_username_or_email.return_value = existing_user
 
         # Act & Assert
@@ -110,18 +103,11 @@ class TestCreateUserUseCase:
     ):
         """Test user creation with different input data"""
         # Arrange
-        user_data = user_factory.create_user_data(
-            username="alice",
-            email="alice@company.com",
-            password="securepass456"
-        )
+        user_data = user_factory.create_user_data(username="alice", email="alice@company.com", password="securepass456")
         user_schema = UserSchema(**user_data)
 
         created_user = user_factory.create_domain_user(
-            id=42,
-            username="alice",
-            email="alice@company.com",
-            password="securepass456"
+            id=42, username="alice", email="alice@company.com", password="securepass456"
         )
 
         mock_user_repository.get_by_username_or_email.return_value = None

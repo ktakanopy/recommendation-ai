@@ -4,7 +4,7 @@ from typing import List
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column, registry, relationship, declarative_base
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry, relationship
 
 table_registry = registry()
 
@@ -22,7 +22,7 @@ class Rating:
     movie_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("movies.id"))
     rating: Mapped[float]
     timestamp: Mapped[datetime] = mapped_column(server_default=func.now())
-    
+
     user: Mapped["User"] = relationship("User", back_populates="ratings")
 
 

@@ -10,11 +10,7 @@ class TestUserAPI(BaseIntegrationTest):
     @pytest.mark.asyncio
     async def test_create_user_success(self, client):
         """Test successful user creation"""
-        user_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "testpassword123"
-        }
+        user_data = {"username": "testuser", "email": "test@example.com", "password": "testpassword123"}
 
         response = await client.post("/users/", json=user_data)
 
@@ -28,11 +24,7 @@ class TestUserAPI(BaseIntegrationTest):
     @pytest.mark.asyncio
     async def test_create_user_duplicate_username(self, client):
         """Test creating user with duplicate username"""
-        user_data = {
-            "username": "duplicate",
-            "email": "first@example.com",
-            "password": "password123"
-        }
+        user_data = {"username": "duplicate", "email": "first@example.com", "password": "password123"}
 
         # Create first user
         response1 = await client.post("/users/", json=user_data)
@@ -46,11 +38,7 @@ class TestUserAPI(BaseIntegrationTest):
     @pytest.mark.asyncio
     async def test_create_user_invalid_email(self, client):
         """Test creating user with invalid email"""
-        user_data = {
-            "username": "testuser",
-            "email": "invalid-email",
-            "password": "password123"
-        }
+        user_data = {"username": "testuser", "email": "invalid-email", "password": "password123"}
 
         response = await client.post("/users/", json=user_data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -82,11 +70,7 @@ class TestUserAPI(BaseIntegrationTest):
         """Test retrieving users with pagination"""
         # Create test users
         for i in range(5):
-            user_data = {
-                "username": f"user{i}",
-                "email": f"user{i}@example.com",
-                "password": "password"
-            }
+            user_data = {"username": f"user{i}", "email": f"user{i}@example.com", "password": "password"}
             await client.post("/users/", json=user_data)
 
         # Test pagination
@@ -101,11 +85,7 @@ class TestUserAPI(BaseIntegrationTest):
         """Test pagination edge cases"""
         # Create test users
         for i in range(3):
-            user_data = {
-                "username": f"user{i}",
-                "email": f"user{i}@example.com",
-                "password": "password"
-            }
+            user_data = {"username": f"user{i}", "email": f"user{i}@example.com", "password": "password"}
             await client.post("/users/", json=user_data)
 
         # Test negative offset
@@ -130,20 +110,12 @@ class TestUserAPI(BaseIntegrationTest):
     async def test_update_user_requires_auth(self, client):
         """Test that updating user requires authentication"""
         # Create user
-        user_data = {
-            "username": "updateuser",
-            "email": "update@example.com",
-            "password": "password123"
-        }
+        user_data = {"username": "updateuser", "email": "update@example.com", "password": "password123"}
         create_response = await client.post("/users/", json=user_data)
         created_user = create_response.json()
 
         # Try to update without authentication
-        update_data = {
-            "username": "updateduser",
-            "email": "updated@example.com",
-            "password": "newpassword"
-        }
+        update_data = {"username": "updateduser", "email": "updated@example.com", "password": "newpassword"}
         response = await client.put(f"/users/{created_user['id']}", json=update_data)
 
         # Should require authentication
@@ -153,11 +125,7 @@ class TestUserAPI(BaseIntegrationTest):
     async def test_delete_user_requires_auth(self, client):
         """Test that deleting user requires authentication"""
         # Create user
-        user_data = {
-            "username": "deleteuser",
-            "email": "delete@example.com",
-            "password": "password123"
-        }
+        user_data = {"username": "deleteuser", "email": "delete@example.com", "password": "password123"}
         create_response = await client.post("/users/", json=user_data)
         created_user = create_response.json()
 

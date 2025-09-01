@@ -46,6 +46,14 @@ extend-exclude = ['migrations']
 [tool.ruff.lint]
 preview = true
 select = ['I', 'F', 'E', 'W', 'PL', 'PT', "FAST"]
+ignore = [
+    "PLR6301",  # Method could be a function (common in test classes)
+    "PLR2004",  # Magic value used in comparison (common in tests)
+    "PLR0913",  # Too many arguments (common in ML model constructors)
+    "PLR0917",  # Too many positional arguments (common in ML model constructors)
+    "PLR0914",  # Too many local variables (common in ML evaluation functions)
+    "PLW2901",  # Variable overwriting in loop (common pattern in ML tensor processing)
+]
 
 [tool.ruff.format]
 preview = true

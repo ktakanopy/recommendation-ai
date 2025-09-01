@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.models.rating import Rating
+from neural_recommendation.domain.models.user import User
 
 
 class UserRepository(ABC):

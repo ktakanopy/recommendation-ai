@@ -4,12 +4,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
-from neural_recommendation.domain.models.deep_learning.two_tower_model import TwoTowerModel
-from neural_recommendation.infrastructure.logging.logger import Logger
 from neural_recommendation.applications.use_cases.deep_learning.feature_preparation_service import (
     FeaturePreparationService,
 )
+from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
+from neural_recommendation.domain.models.deep_learning.two_tower_model import TwoTowerModel
+from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
 
@@ -17,7 +17,9 @@ logger = Logger.get_logger(__name__)
 class RecommendationService:
     """Domain service for generating movie recommendations"""
 
-    def __init__(self, model: TwoTowerModel, feature_service: FeaturePreparationService, movie_mappings: Dict[str, Any]):
+    def __init__(
+        self, model: TwoTowerModel, feature_service: FeaturePreparationService, movie_mappings: Dict[str, Any]
+    ):
         self.model = model
         self.feature_service = feature_service
         self.device = next(model.parameters()).device

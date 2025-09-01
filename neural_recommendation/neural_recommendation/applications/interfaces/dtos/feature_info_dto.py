@@ -20,12 +20,12 @@ class FeatureInfoDto:
     unique_user_ids: List[str]
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FeatureInfoDto':
+    def from_dict(cls, data: Dict[str, Any]) -> "FeatureInfoDto":
         sentence_embeddings_dict = data["sentence_embeddings"]
         sentence_embeddings = SentenceEmbeddingsDto(
             title_to_idx=sentence_embeddings_dict["title_to_idx"],
             embedding_matrix=sentence_embeddings_dict["embedding_matrix"],
-            embedding_dim=sentence_embeddings_dict["embedding_dim"]
+            embedding_dim=sentence_embeddings_dict["embedding_dim"],
         )
 
         return cls(
@@ -33,7 +33,7 @@ class FeatureInfoDto:
             age_std=data["age_std"],
             sentence_embeddings=sentence_embeddings,
             unique_movie_titles=data["unique_movie_titles"],
-            unique_user_ids=data["unique_user_ids"]
+            unique_user_ids=data["unique_user_ids"],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -43,8 +43,8 @@ class FeatureInfoDto:
             "sentence_embeddings": {
                 "title_to_idx": self.sentence_embeddings.title_to_idx,
                 "embedding_matrix": self.sentence_embeddings.embedding_matrix,
-                "embedding_dim": self.sentence_embeddings.embedding_dim
+                "embedding_dim": self.sentence_embeddings.embedding_dim,
             },
             "unique_movie_titles": self.unique_movie_titles,
-            "unique_user_ids": self.unique_user_ids
+            "unique_user_ids": self.unique_user_ids,
         }

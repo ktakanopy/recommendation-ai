@@ -22,7 +22,6 @@ class FeatureEngineeringService:
             "month": month,
             "year": year,
             "quarter": (month - 1) // 3 + 1,
-
             # Cyclical encodings
             "hour_sin": np.sin(2 * np.pi * hour / 24),
             "hour_cos": np.cos(2 * np.pi * hour / 24),
@@ -30,7 +29,6 @@ class FeatureEngineeringService:
             "day_of_week_cos": np.cos(2 * np.pi * day_of_week / 7),
             "month_sin": np.sin(2 * np.pi * month / 12),
             "month_cos": np.cos(2 * np.pi * month / 12),
-
             # Binary indicators
             "is_weekend": int(day_of_week >= 5),
             "is_weekday": int(day_of_week < 5),
@@ -38,12 +36,10 @@ class FeatureEngineeringService:
             "is_afternoon": int(12 <= hour < 18),
             "is_evening": int(18 <= hour < 22),
             "is_night": int(hour >= 22 or hour < 6),
-
             "is_spring": int(3 <= month <= 5),
             "is_summer": int(6 <= month <= 8),
             "is_fall": int(9 <= month <= 11),
             "is_winter": int(month == 12 or month <= 2),
-
             "is_business_hours": int(9 <= hour <= 17 and day_of_week < 5),
         }
 
@@ -61,17 +57,32 @@ class FeatureEngineeringService:
     def get_timestamp_feature_columns() -> list[str]:
         """Get list of all timestamp feature column names"""
         return [
-            "hour", "day_of_week", "day_of_month", "month", "year", "quarter",
-            "hour_sin", "hour_cos", "day_of_week_sin", "day_of_week_cos",
-            "month_sin", "month_cos", "is_weekend", "is_weekday", "is_morning",
-            "is_afternoon", "is_evening", "is_night", "is_spring", "is_summer",
-            "is_fall", "is_winter", "is_business_hours"
+            "hour",
+            "day_of_week",
+            "day_of_month",
+            "month",
+            "year",
+            "quarter",
+            "hour_sin",
+            "hour_cos",
+            "day_of_week_sin",
+            "day_of_week_cos",
+            "month_sin",
+            "month_cos",
+            "is_weekend",
+            "is_weekday",
+            "is_morning",
+            "is_afternoon",
+            "is_evening",
+            "is_night",
+            "is_spring",
+            "is_summer",
+            "is_fall",
+            "is_winter",
+            "is_business_hours",
         ]
 
     @staticmethod
     def compute_statistics(data_series, feature_name: str) -> Dict[str, float]:
         """Compute mean and std for a feature"""
-        return {
-            f"{feature_name}_mean": data_series.mean(),
-            f"{feature_name}_std": data_series.std()
-        }
+        return {f"{feature_name}_mean": data_series.mean(), f"{feature_name}_std": data_series.std()}

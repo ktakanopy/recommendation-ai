@@ -11,12 +11,12 @@ from neural_recommendation.domain.services.feature_engineering_service import Fe
 class FeaturePreparationService:
     """
     Application service for preparing features for users in production.
-    
+
     Main method: prepare_user_features(user_id, ratings, user_age, gender)
     - Takes a List[Rating] to build user features from rating history
     - Uses the most recent rating's timestamp for temporal features
     - Provides user profile analysis through extract_user_profile_from_ratings()
-    
+
     Legacy method: prepare_user_features_legacy() for backward compatibility
     """
 
@@ -31,19 +31,12 @@ class FeaturePreparationService:
         self.user_id_to_idx = {uid: idx for idx, uid in enumerate(feature_info.unique_user_ids)}
 
     def prepare_user_features(
-        self,
-        user_id: str,
-        ratings: List[Rating],
-        user_age: float = 25.0,
-        gender: str = "M",
-        occupation: int = 0
+        self, user_id: str, ratings: List[Rating], user_age: float = 25.0, gender: str = "M", occupation: int = 0
     ) -> Dict[str, Any]:
         """Prepare features for a user based on their rating history"""
 
         # Use domain service for feature engineering
-        normalized_age = self.feature_engineering_service.normalize_age(
-            user_age, self.age_mean, self.age_std
-        )
+        normalized_age = self.feature_engineering_service.normalize_age(user_age, self.age_mean, self.age_std)
         gender_encoded = self.feature_engineering_service.encode_gender(gender)
 
         # Get user index
@@ -64,7 +57,7 @@ class FeaturePreparationService:
                 "average_rating": 0.0,
                 "rating_variance": 0.0,
                 "latest_timestamp": time.time(),
-                "rating_frequency": 0.0
+                "rating_frequency": 0.0,
             }
 
         # Basic statistics
@@ -88,15 +81,11 @@ class FeaturePreparationService:
             "average_rating": average_rating,
             "rating_variance": rating_variance,
             "latest_timestamp": latest_timestamp,
-            "rating_frequency": rating_frequency
+            "rating_frequency": rating_frequency,
         }
 
     def prepare_comprehensive_user_features(
-        self,
-        user_id: str,
-        ratings: List[Rating],
-        user_age: float = 25.0,
-        gender: str = "M"
+        self, user_id: str, ratings: List[Rating], user_age: float = 25.0, gender: str = "M"
     ) -> Dict[str, Any]:
         """
         Prepare comprehensive user features combining basic features and rating history analysis.
@@ -109,17 +98,10 @@ class FeaturePreparationService:
         profile_features = self.extract_user_profile_from_ratings(ratings)
 
         # Combine all features
-        return {
-            **basic_features,
-            **profile_features
-        }
+        return {**basic_features, **profile_features}
 
     def prepare_user_features_legacy(
-        self,
-        user_id: str,
-        user_age: float = 25.0,
-        gender: str = "M",
-        timestamp: Optional[float] = None
+        self, user_id: str, user_age: float = 25.0, gender: str = "M", timestamp: Optional[float] = None
     ) -> Dict[str, Any]:
         """Legacy method - prepare features for a single user with timestamp"""
 
@@ -128,12 +110,10 @@ class FeaturePreparationService:
             timestamp = time.time()
 
         # Convert timestamp to datetime
-        dt = pd.to_datetime(timestamp, unit="s")
+        pd.to_datetime(timestamp, unit="s")
 
         # Use domain service for feature engineering
-        normalized_age = self.feature_engineering_service.normalize_age(
-            user_age, self.age_mean, self.age_std
-        )
+        normalized_age = self.feature_engineering_service.normalize_age(user_age, self.age_mean, self.age_std)
         gender_encoded = self.feature_engineering_service.encode_gender(gender)
 
         # Get user index
@@ -151,6 +131,4 @@ class FeaturePreparationService:
         title_to_idx = self.feature_info.sentence_embeddings.title_to_idx
         movie_idx = title_to_idx.get(movie_title, 0)
 
-        return {
-            "movie_idx": movie_idx
-        }
+        return {"movie_idx": movie_idx}

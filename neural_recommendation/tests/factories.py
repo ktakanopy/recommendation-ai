@@ -20,7 +20,7 @@ class UserFactory:
         username: str = "testuser",
         email: str = "test@example.com",
         password: str = "testpassword123",
-        created_at: Optional[datetime] = None
+        created_at: Optional[datetime] = None,
     ) -> DomainUser:
         """Create a domain user for testing"""
         if created_at is None:
@@ -41,7 +41,7 @@ class UserFactory:
         username: str = "testuser",
         email: str = "test@example.com",
         password: str = "testpassword123",
-        created_at: Optional[datetime] = None
+        created_at: Optional[datetime] = None,
     ) -> SQLUser:
         """Create a SQL user for testing"""
         user = SQLUser(
@@ -54,18 +54,10 @@ class UserFactory:
         return user
 
     def create_user_data(
-        self,
-        *,
-        username: str = "testuser",
-        email: str = "test@example.com",
-        password: str = "testpassword123"
+        self, *, username: str = "testuser", email: str = "test@example.com", password: str = "testpassword123"
     ) -> dict:
         """Create user data dictionary for API tests"""
-        return {
-            "username": username,
-            "email": email,
-            "password": password
-        }
+        return {"username": username, "email": email, "password": password}
 
 
 # Global factory instance

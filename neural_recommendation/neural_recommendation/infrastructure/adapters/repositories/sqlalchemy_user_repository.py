@@ -19,17 +19,17 @@ class SQLAlchemyUserRepository(UserRepository):
         domain_ratings = None
         if include_ratings:
             domain_ratings = []
-            if hasattr(sql_user, 'ratings') and sql_user.ratings:
+            if hasattr(sql_user, "ratings") and sql_user.ratings:
                 for sql_rating in sql_user.ratings:
                     domain_rating = Rating(
                         id=sql_rating.id,
                         user_id=sql_rating.user_id,
                         movie_id=sql_rating.movie_id,
                         rating=sql_rating.rating,
-                        timestamp=sql_rating.timestamp
+                        timestamp=sql_rating.timestamp,
                     )
                     domain_ratings.append(domain_rating)
-        
+
         return DomainUser(
             username=sql_user.username,
             email=sql_user.email,
@@ -48,6 +48,7 @@ class SQLAlchemyUserRepository(UserRepository):
         )
 
     async def create(self, user: DomainUser) -> DomainUser:
+        # Step 1: Create the user entity first
         sql_user = SQLUser(
             username=user.username,
             email=user.email,
@@ -56,7 +57,21 @@ class SQLAlchemyUserRepository(UserRepository):
         self.session.add(sql_user)
         await self.session.commit()
         await self.session.refresh(sql_user)
-        return self._to_domain(sql_user)
+
+        # Step 2: Create associated ratings if provided
+        if user.ratings:
+            await self._create_user_ratings(sql_user.id, user.ratings)
+
+        return self._to_domain(sql_user, include_ratings=bool(user.ratings))
+
+    async def _create_user_ratings(self, user_id: int, ratings: List[Rating]) -> None:
+        """Private method to create ratings for a user"""
+        for rating in ratings:
+            sql_rating = SQLRating(
+                user_id=user_id, movie_id=rating.movie_id, rating=rating.rating, timestamp=rating.timestamp
+            )
+            self.session.add(sql_rating)
+        await self.session.commit()
 
     async def get_by_id(self, user_id: int) -> Optional[DomainUser]:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))
@@ -78,12 +93,10 @@ class SQLAlchemyUserRepository(UserRepository):
 
     async def get_user_ratings(self, user_id: int) -> List[Rating]:
         """Get all ratings for a specific user"""
-        
-        sql_ratings = await self.session.scalars(
-            select(SQLRating).where(SQLRating.user_id == user_id)
-        )
+
+        sql_ratings = await self.session.scalars(select(SQLRating).where(SQLRating.user_id == user_id))
         ratings = sql_ratings.all()
-        
+
         domain_ratings = []
         for sql_rating in ratings:
             domain_rating = Rating(
@@ -91,10 +104,10 @@ class SQLAlchemyUserRepository(UserRepository):
                 user_id=sql_rating.user_id,
                 movie_id=sql_rating.movie_id,
                 rating=sql_rating.rating,
-                timestamp=sql_rating.timestamp
+                timestamp=sql_rating.timestamp,
             )
             domain_ratings.append(domain_rating)
-        
+
         return domain_ratings
 
     async def get_all(self, offset: int = 0, limit: int = 100) -> List[DomainUser]:

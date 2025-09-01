@@ -128,24 +128,17 @@ class TestJWTAuthService(BaseIntegrationTest):
             DATABASE_URL="postgresql+psycopg://app_user:app_password@localhost:5433/app_db",
             SECRET_KEY="test-secret-key-for-testing",
             ALGORITHM="HS256",
-            ACCESS_TOKEN_EXPIRE_MINUTES=1  # 1 minute expiry
+            ACCESS_TOKEN_EXPIRE_MINUTES=1,  # 1 minute expiry
         )
 
         auth_service = JWTAuthService(test_session, expired_settings)
 
-        user = DomainUser(
-            id=1,
-            username="expireduser",
-            email="expired@example.com",
-            password_hash="password"
-        )
+        user = DomainUser(id=1, username="expireduser", email="expired@example.com", password_hash="password")
 
         # Create token that will expire soon
-        token = auth_service.create_access_token(user)
+        auth_service.create_access_token(user)
 
         # Manually create an expired token by manipulating the JWT
-
-        from jose import jwt
 
         # Create an expired token manually
         expire = datetime.now(tz=ZoneInfo("UTC")) - timedelta(minutes=1)  # Already expired

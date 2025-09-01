@@ -1,5 +1,3 @@
-
-
 import os
 from typing import Any, Dict
 
@@ -15,7 +13,6 @@ class ModelLoader:
 
     @staticmethod
     def load_model(config: ModelConfig, additional_feature_info: Dict[str, Any]) -> TwoTowerModel:
-
         model_path = os.path.join(config.models_dir, config.model_name)
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")

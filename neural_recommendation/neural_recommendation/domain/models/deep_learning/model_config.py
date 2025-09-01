@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
 
 @dataclass
@@ -32,7 +35,7 @@ class ModelConfig:
     dropout_rate: float = 0.3
 
     @classmethod
-    def from_settings(cls, settings: 'MLModelSettings') -> 'ModelConfig':
+    def from_settings(cls, settings: "MLModelSettings") -> "ModelConfig":
         return cls(
             num_epochs=settings.num_epochs,
             embedding_size=settings.embedding_size,
@@ -52,12 +55,12 @@ class ModelConfig:
             train_split=settings.train_split,
             val_split=settings.val_split,
             test_split=settings.test_split,
-            num_negatives=getattr(settings, 'num_negatives', 4),
-            use_hard_negatives=getattr(settings, 'use_hard_negatives', False),
-            hard_negative_ratio=getattr(settings, 'hard_negative_ratio', 0.5),
-            loss_type=getattr(settings, 'loss_type', "explicit_negatives"),
-            num_sampled_negatives=getattr(settings, 'num_sampled_negatives', 1000),
-            dropout_rate=getattr(settings, 'dropout_rate', 0.3),
+            num_negatives=getattr(settings, "num_negatives", 4),
+            use_hard_negatives=getattr(settings, "use_hard_negatives", False),
+            hard_negative_ratio=getattr(settings, "hard_negative_ratio", 0.5),
+            loss_type=getattr(settings, "loss_type", "explicit_negatives"),
+            num_sampled_negatives=getattr(settings, "num_sampled_negatives", 1000),
+            dropout_rate=getattr(settings, "dropout_rate", 0.3),
         )
 
     def to_dict(self) -> dict:

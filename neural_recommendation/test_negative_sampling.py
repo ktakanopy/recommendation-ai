@@ -42,7 +42,7 @@ def create_test_config(loss_type: str, num_negatives: int = 4) -> ModelConfig:
         use_hard_negatives=(loss_type == "hard_negatives"),
         hard_negative_ratio=0.5,
         loss_type=loss_type if loss_type != "hard_negatives" else "explicit_negatives",
-        num_sampled_negatives=100  # Smaller for testing
+        num_sampled_negatives=100,  # Smaller for testing
     )
 
 
@@ -58,7 +58,7 @@ def compare_negative_sampling_strategies():
         ("in_batch", "Original in-batch negative sampling"),
         ("explicit_negatives", "Explicit random negative sampling"),
         ("hard_negatives", "Hard negative mining"),
-        ("sampled_softmax", "Sampled softmax loss")
+        ("sampled_softmax", "Sampled softmax loss"),
     ]
 
     results = {}
@@ -88,17 +88,11 @@ def compare_negative_sampling_strategies():
             # 3. Train the model
             # 4. Evaluate the results
 
-            results[loss_type] = {
-                "config": config.to_dict(),
-                "status": "configured"
-            }
+            results[loss_type] = {"config": config.to_dict(), "status": "configured"}
 
         except Exception as e:
             logger.error(f"Error testing {loss_type}: {str(e)}")
-            results[loss_type] = {
-                "status": "error",
-                "error": str(e)
-            }
+            results[loss_type] = {"status": "error", "error": str(e)}
 
     logger.info(f"\n{'=' * 80}")
     logger.info("SUMMARY")

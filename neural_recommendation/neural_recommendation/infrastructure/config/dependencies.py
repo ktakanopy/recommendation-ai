@@ -62,16 +62,13 @@ async def get_current_user(
 
 
 def get_model_inference_repository(
-    config: Annotated[ModelConfig, Depends(get_model_config)]
+    config: Annotated[ModelConfig, Depends(get_model_config)],
 ) -> ModelInferenceRepository:
     """Get model inference repository with injected config"""
-    return ModelInferenceManagerAdapter(
-        models_dir=config.models_dir,
-        device=config.device
-    )
+    return ModelInferenceManagerAdapter(models_dir=config.models_dir, device=config.device)
 
 
 def get_recommendation_service(
-    model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)]
+    model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)],
 ) -> RecommendationServicePort:
     return RecommendationApplicationService(model_repository)

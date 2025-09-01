@@ -5,6 +5,7 @@ from typing import List
 @dataclass
 class Recommendation:
     """Domain model representing a movie recommendation"""
+
     movie_id: int
     title: str
     genres: str
@@ -19,6 +20,7 @@ class Recommendation:
 @dataclass
 class RecommendationResult:
     """Domain model for recommendation results"""
+
     user_id: str
     recommendations: List[Recommendation]
     total_available_movies: int

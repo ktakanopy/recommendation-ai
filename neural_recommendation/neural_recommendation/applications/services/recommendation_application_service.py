@@ -26,7 +26,9 @@ class RecommendationApplicationService(RecommendationServicePort):
                 "idx_to_title": idx_to_title,
                 "all_movie_titles": all_movie_titles,
             }
-            self._domain_service = RecommendationService(model=model, feature_service=feature_service, movie_mappings=movie_mappings)
+            self._domain_service = RecommendationService(
+                model=model, feature_service=feature_service, movie_mappings=movie_mappings
+            )
         return self._domain_service
 
     def generate_recommendations_for_existing_user(
@@ -90,6 +92,9 @@ class RecommendationApplicationService(RecommendationServicePort):
             "movie_title": movie_title,
             "similarity_score": target.similarity_score,
             "similarity_percentage": target.similarity_percentage,
-            "explanation": f"This movie has a {target.similarity_percentage:.1f}% similarity match with your preferences based on your viewing history and demographic profile.",
+            "explanation": (
+                f"This movie has a {target.similarity_percentage:.1f}% similarity match with your preferences "
+                f"based on your viewing history and demographic profile."
+            ),
             "genres": target.genres,
         }

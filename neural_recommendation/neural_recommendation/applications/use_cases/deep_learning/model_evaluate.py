@@ -13,11 +13,11 @@ class ModelEvaluator:
         user_embeddings: torch.Tensor,
         all_movie_embeddings: torch.Tensor,
         ground_truth_movies: List[Set[int]],
-        k: int = 10
+        k: int = 10,
     ) -> Dict[str, float]:
         """
         Calculate proper recommendation metrics by ranking against full catalog.
-        
+
         Args:
             user_embeddings: [batch_size, embed_dim] - User embeddings
             all_movie_embeddings: [num_movies, embed_dim] - All movie embeddings
@@ -70,9 +70,7 @@ class ModelEvaluator:
             total_mrr += mrr
 
             # NDCG@K: Normalized Discounted Cumulative Gain
-            ndcg = ModelEvaluator._calculate_ndcg(
-                top_k_indices[i].cpu().tolist(), user_relevant, k
-            )
+            ndcg = ModelEvaluator._calculate_ndcg(top_k_indices[i].cpu().tolist(), user_relevant, k)
             total_ndcg += ndcg
 
         # Average across all users
@@ -108,11 +106,11 @@ class ModelEvaluator:
         device: str,
         additional_feature_info: Dict = None,
         evaluation_type: str = "leave_one_out",
-        train_user_interactions: Dict[int, Set[int]] = None
+        train_user_interactions: Dict[int, Set[int]] = None,
     ) -> Dict[str, float]:
         """
         Evaluate model using proper recommendation evaluation methodology.
-        
+
         Args:
             model: The two-tower model to evaluate
             test_loader: DataLoader with test data
@@ -130,9 +128,7 @@ class ModelEvaluator:
             # Fallback to old evaluation method if no feature info provided
             return ModelEvaluator._evaluate_model_legacy(model, test_loader, device)
 
-        all_movie_embeddings = ModelEvaluator._get_all_movie_embeddings(
-            model, additional_feature_info, device
-        )
+        all_movie_embeddings = ModelEvaluator._get_all_movie_embeddings(model, additional_feature_info, device)
 
         # Use training data for ground truth to avoid data leakage
         if train_user_interactions is None:
@@ -142,15 +138,14 @@ class ModelEvaluator:
         else:
             user_interactions = train_user_interactions
 
-        total_metrics = {
-            "recall@10": 0.0, "precision@10": 0.0, "hit_rate@10": 0.0,
-            "mrr@10": 0.0, "ndcg@10": 0.0
-        }
+        total_metrics = {"recall@10": 0.0, "precision@10": 0.0, "hit_rate@10": 0.0, "mrr@10": 0.0, "ndcg@10": 0.0}
 
         with torch.no_grad():
             for user_inputs, movie_inputs in test_loader:
                 user_inputs = {k: v.to(device, non_blocking=True) for k, v in user_inputs.items() if torch.is_tensor(v)}
-                movie_inputs = {k: v.to(device, non_blocking=True) for k, v in movie_inputs.items() if torch.is_tensor(v)}
+                movie_inputs = {
+                    k: v.to(device, non_blocking=True) for k, v in movie_inputs.items() if torch.is_tensor(v)
+                }
 
                 # Calculate loss (keeping original loss computation)
                 loss = model.compute_loss(user_inputs, movie_inputs)
@@ -229,7 +224,9 @@ class ModelEvaluator:
         return user_interactions
 
     @staticmethod
-    def build_user_interactions_from_training_data(train_ratings: Dict[str, Any], user_id_to_idx: Dict[str, int], title_to_idx: Dict[str, int]) -> Dict[int, Set[int]]:
+    def build_user_interactions_from_training_data(
+        train_ratings: Dict[str, Any], user_id_to_idx: Dict[str, int], title_to_idx: Dict[str, int]
+    ) -> Dict[int, Set[int]]:
         """Build user interaction history from raw training data to avoid data leakage"""
         user_interactions = {}
 
@@ -259,7 +256,9 @@ class ModelEvaluator:
         with torch.no_grad():
             for user_inputs, movie_inputs in test_loader:
                 user_inputs = {k: v.to(device, non_blocking=True) for k, v in user_inputs.items() if torch.is_tensor(v)}
-                movie_inputs = {k: v.to(device, non_blocking=True) for k, v in movie_inputs.items() if torch.is_tensor(v)}
+                movie_inputs = {
+                    k: v.to(device, non_blocking=True) for k, v in movie_inputs.items() if torch.is_tensor(v)
+                }
 
                 loss = model.compute_loss(user_inputs, movie_inputs)
                 total_loss += loss.item()

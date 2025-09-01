@@ -23,7 +23,7 @@ class ModelInferenceManager:
     def load_model_and_features(
         self,
         model_filename: str = "two_tower_model_all_features.pth",
-        features_filename: str = "preprocessed_features.pkl"
+        features_filename: str = "preprocessed_features.pkl",
     ) -> Tuple[TwoTowerModel, FeatureInfoDto]:
         """Load trained model and feature information"""
 
@@ -66,7 +66,6 @@ class ModelInferenceManager:
         """Load trained model"""
         model_path = os.path.join(self.models_dir, model_filename)
         if not os.path.exists(model_path):
-
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         logger.info(f"Loading model from: {model_path}")
@@ -87,8 +86,7 @@ class ModelInferenceManager:
         # Filter state dict to match model
         model_dict = model.state_dict()
         filtered_state_dict = {
-            k: v for k, v in state_dict.items()
-            if k in model_dict and v.shape == model_dict[k].shape
+            k: v for k, v in state_dict.items() if k in model_dict and v.shape == model_dict[k].shape
         }
 
         model.load_state_dict(filtered_state_dict, strict=False)

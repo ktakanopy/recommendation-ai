@@ -11,17 +11,13 @@ class TestAuthAPI(BaseIntegrationTest):
     async def test_login_success(self, client):
         """Test successful login"""
         # Create a user first
-        user_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "testpassword123"
-        }
+        user_data = {"username": "testuser", "email": "test@example.com", "password": "testpassword123"}
         await client.post("/users/", json=user_data)
 
         # Try to login
         login_data = {
             "username": "test@example.com",  # Using email as username
-            "password": "testpassword123"
+            "password": "testpassword123",
         }
         response = await client.post("/auth/token", data=login_data)
 
@@ -34,10 +30,7 @@ class TestAuthAPI(BaseIntegrationTest):
     @pytest.mark.asyncio
     async def test_login_invalid_credentials(self, client):
         """Test login with non-existent user"""
-        login_data = {
-            "username": "nonexistent@example.com",
-            "password": "wrongpassword"
-        }
+        login_data = {"username": "nonexistent@example.com", "password": "wrongpassword"}
         response = await client.post("/auth/token", data=login_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -46,18 +39,11 @@ class TestAuthAPI(BaseIntegrationTest):
     async def test_login_wrong_password(self, client):
         """Test login with wrong password"""
         # Create a user first
-        user_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "testpassword123"
-        }
+        user_data = {"username": "testuser", "email": "test@example.com", "password": "testpassword123"}
         await client.post("/users/", json=user_data)
 
         # Try to login with wrong password
-        login_data = {
-            "username": "test@example.com",
-            "password": "wrongpassword"
-        }
+        login_data = {"username": "test@example.com", "password": "wrongpassword"}
         response = await client.post("/auth/token", data=login_data)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
@@ -66,18 +52,11 @@ class TestAuthAPI(BaseIntegrationTest):
     async def test_token_format(self, client):
         """Test JWT token format and expiration"""
         # Create a user first
-        user_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "testpassword123"
-        }
+        user_data = {"username": "testuser", "email": "test@example.com", "password": "testpassword123"}
         await client.post("/users/", json=user_data)
 
         # Get token
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword123"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword123"}
         response = await client.post("/auth/token", data=login_data)
 
         assert response.status_code == status.HTTP_200_OK
@@ -100,7 +79,7 @@ class TestAuthAPI(BaseIntegrationTest):
             "not_a_token",
             "Bearer without_token",
             "Bearer.invalid.format",
-            "Bearer " + "a" * 1000  # Very long invalid token
+            "Bearer " + "a" * 1000,  # Very long invalid token
         ]
 
         for token in invalid_tokens:
@@ -118,18 +97,11 @@ class TestAuthAPI(BaseIntegrationTest):
     async def test_token_case_sensitivity(self, client):
         """Test token type is case-insensitive as per OAuth2 spec"""
         # Create a user first
-        user_data = {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password": "testpassword123"
-        }
+        user_data = {"username": "testuser", "email": "test@example.com", "password": "testpassword123"}
         await client.post("/users/", json=user_data)
 
         # Get token
-        login_data = {
-            "username": "test@example.com",
-            "password": "testpassword123"
-        }
+        login_data = {"username": "test@example.com", "password": "testpassword123"}
         response = await client.post("/auth/token", data=login_data)
         token = response.json()["access_token"]
 

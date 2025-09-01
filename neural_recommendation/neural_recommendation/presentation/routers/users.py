@@ -36,10 +36,7 @@ async def create_user(user: UserSchema, user_repository: UserRepositoryDep, auth
 @router.get("/me", response_model=UserPublic)
 async def read_current_user(current_user: CurrentUserDep):
     if current_user.id is None:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="User ID is not set"
-        )
+        raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail="User ID is not set")
     return UserPublic(id=current_user.id, username=current_user.username, email=current_user.email)
 
 

@@ -1,5 +1,3 @@
-
-
 from typing import Any, Dict, List, Tuple
 
 import torch
@@ -35,9 +33,7 @@ class TwoTowerModel(nn.Module):
             device,
         )
         user_input_size = self._calculate_user_input_size(embedding_size)
-        movie_input_size = self._calculate_movie_input_size(
-            embedding_size, additional_feature_info
-        )
+        movie_input_size = self._calculate_movie_input_size(embedding_size, additional_feature_info)
         self.query_tower = self._build_tower([user_input_size] + layer_sizes)
         self.candidate_tower = self._build_tower([movie_input_size] + layer_sizes)
 
@@ -61,9 +57,7 @@ class TwoTowerModel(nn.Module):
                 layers.append(nn.Dropout(self.dropout_rate))
         return nn.Sequential(*layers)
 
-    def forward(
-        self, user_inputs: Dict[str, Any], movie_inputs: Dict[str, Any]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, user_inputs: Dict[str, Any], movie_inputs: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
         user_embeddings = self.user_model(user_inputs)
         movie_embeddings = self.movie_model(movie_inputs)
         query_embeddings = self.query_tower(user_embeddings)
@@ -91,7 +85,7 @@ class TwoTowerModel(nn.Module):
     ) -> torch.Tensor:
         """
         Compute loss using explicit negative sampling.
-        
+
         Args:
             user_inputs: User features [batch_size, ...]
             positive_movie_inputs: Positive movie features [batch_size, ...]
@@ -114,7 +108,9 @@ class TwoTowerModel(nn.Module):
         neg_inputs_flat = {"movie_idx": neg_movie_indices}
         negative_embeddings = self.movie_model(neg_inputs_flat)  # [batch_size * num_negatives, embed_dim]
         negative_embeddings = F.normalize(negative_embeddings, p=2, dim=1)
-        negative_embeddings = negative_embeddings.view(batch_size, num_negatives, -1)  # [batch_size, num_negatives, embed_dim]
+        negative_embeddings = negative_embeddings.view(
+            batch_size, num_negatives, -1
+        )  # [batch_size, num_negatives, embed_dim]
 
         # Apply towers
         user_query = self.query_tower(user_embeddings)  # [batch_size, final_dim]
@@ -123,7 +119,9 @@ class TwoTowerModel(nn.Module):
         # Process negatives through candidate tower
         negative_embeddings_flat = negative_embeddings.view(-1, negative_embeddings.size(-1))
         negative_candidates = self.candidate_tower(negative_embeddings_flat)  # [batch_size * num_negatives, final_dim]
-        negative_candidates = negative_candidates.view(batch_size, num_negatives, -1)  # [batch_size, num_negatives, final_dim]
+        negative_candidates = negative_candidates.view(
+            batch_size, num_negatives, -1
+        )  # [batch_size, num_negatives, final_dim]
 
         # Normalize final embeddings
         user_query = F.normalize(user_query, p=2, dim=1)
@@ -134,18 +132,12 @@ class TwoTowerModel(nn.Module):
         positive_scores = torch.sum(user_query * positive_candidate, dim=1)  # [batch_size]
         negative_scores = torch.bmm(
             user_query.unsqueeze(1),  # [batch_size, 1, final_dim]
-            negative_candidates.transpose(1, 2)  # [batch_size, final_dim, num_negatives]
+            negative_candidates.transpose(1, 2),  # [batch_size, final_dim, num_negatives]
         ).squeeze(1)  # [batch_size, num_negatives]
 
         # Binary classification loss
-        positive_loss = F.binary_cross_entropy_with_logits(
-            positive_scores,
-            torch.ones_like(positive_scores)
-        )
-        negative_loss = F.binary_cross_entropy_with_logits(
-            negative_scores,
-            torch.zeros_like(negative_scores)
-        )
+        positive_loss = F.binary_cross_entropy_with_logits(positive_scores, torch.ones_like(positive_scores))
+        negative_loss = F.binary_cross_entropy_with_logits(negative_scores, torch.zeros_like(negative_scores))
 
         return positive_loss + negative_loss
 
@@ -157,7 +149,7 @@ class TwoTowerModel(nn.Module):
     ) -> torch.Tensor:
         """
         Compute loss using sampled softmax with randomly sampled negative movies.
-        
+
         Args:
             user_inputs: User features [batch_size, ...]
             positive_movie_inputs: Positive movie features [batch_size, ...]
@@ -178,9 +170,7 @@ class TwoTowerModel(nn.Module):
 
         # Sample negative movies
         total_movies = len(self.movie_model.title_to_idx)
-        sampled_movie_indices = torch.randint(
-            0, total_movies, (num_sampled_negatives,), device=device
-        )
+        sampled_movie_indices = torch.randint(0, total_movies, (num_sampled_negatives,), device=device)
         sampled_movie_inputs = {"movie_idx": sampled_movie_indices}
         sampled_embeddings = self.movie_model(sampled_movie_inputs)
         sampled_candidates = self.candidate_tower(sampled_embeddings)
@@ -191,10 +181,13 @@ class TwoTowerModel(nn.Module):
         negative_scores = torch.matmul(user_query, sampled_candidates.T)  # [batch_size, num_sampled]
 
         # Combine positive and negative scores
-        all_scores = torch.cat([
-            positive_scores.unsqueeze(1),  # [batch_size, 1]
-            negative_scores  # [batch_size, num_sampled]
-        ], dim=1)  # [batch_size, 1 + num_sampled]
+        all_scores = torch.cat(
+            [
+                positive_scores.unsqueeze(1),  # [batch_size, 1]
+                negative_scores,  # [batch_size, num_sampled]
+            ],
+            dim=1,
+        )  # [batch_size, 1 + num_sampled]
 
         # Labels: positive is always at index 0
         labels = torch.zeros(batch_size, dtype=torch.long, device=device)

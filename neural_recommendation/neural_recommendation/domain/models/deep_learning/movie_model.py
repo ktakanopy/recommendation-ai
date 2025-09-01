@@ -1,5 +1,3 @@
-
-
 from typing import Any, Dict
 
 import torch
@@ -31,11 +29,9 @@ class MovieModel(nn.Module):
             nn.LayerNorm(self.embedding_size),
             nn.ReLU(),
             nn.Linear(self.embedding_size, self.embedding_size),
-            nn.LayerNorm(self.embedding_size)
+            nn.LayerNorm(self.embedding_size),
         )
-        logger.info(
-            f"Using precomputed movie embeddings (dim: {self.precomputed_embedding_dim})"
-        )
+        logger.info(f"Using precomputed movie embeddings (dim: {self.precomputed_embedding_dim})")
 
     def forward(self, inputs: Dict[str, Any]) -> torch.Tensor:
         movie_indices = inputs["movie_idx"]

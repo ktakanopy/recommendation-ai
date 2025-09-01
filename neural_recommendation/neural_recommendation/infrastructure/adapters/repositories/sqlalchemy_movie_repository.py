@@ -14,17 +14,18 @@ class SQLAlchemyMovieRepository(MovieRepository):
 
     def _to_domain(self, sql_movie: SQLMovie) -> DomainMovie:
         return DomainMovie(
-            id=sql_movie.id,
-            title=sql_movie.title,
-            genres=sql_movie.genres,
-            embedding=sql_movie.embedding
+            id=sql_movie.id, title=sql_movie.title, genres=sql_movie.genres, embedding=sql_movie.embedding
         )
 
-    def get_similar_movies(self, query_embedding: List[float], user_watched_movies: List[uuid.UUID], num_recommendations: int) -> List[DomainMovie]:
-        query = self.session.query(SQLMovie, SQLMovie.embedding.cosine_distance(query_embedding))\
-            .where(SQLMovie.id.notin_(user_watched_movies))\
-            .order_by(SQLMovie.embedding.cosine_distance(SQLMovie.embedding))\
-           .limit(num_recommendations)
+    def get_similar_movies(
+        self, query_embedding: List[float], user_watched_movies: List[uuid.UUID], num_recommendations: int
+    ) -> List[DomainMovie]:
+        query = (
+            self.session.query(SQLMovie, SQLMovie.embedding.cosine_distance(query_embedding))
+            .where(SQLMovie.id.notin_(user_watched_movies))
+            .order_by(SQLMovie.embedding.cosine_distance(SQLMovie.embedding))
+            .limit(num_recommendations)
+        )
         result = query.all()
         return [self._to_domain(movie) for movie, _ in result]
 
