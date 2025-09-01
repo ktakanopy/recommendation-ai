@@ -15,15 +15,8 @@ class RecommendationServicePort(ABC):
         pass
 
     @abstractmethod
-    def generate_recommendations_for_new_user(
-        self, user_age: float, gender: str, preferred_genres: list[str] = None, num_recommendations: int = 10
+    async def generate_recommendations_cold_start(
+        self, user_id: int, num_recommendations: int = 10
     ) -> RecommendationResult:
-        """Generate recommendations for a new user"""
-        pass
-
-    @abstractmethod
-    def explain_recommendation(
-        self, user_id: str, movie_title: str, user_age: float = 25.0, gender: str = "M"
-    ) -> Dict[str, Any]:
-        """Explain why a specific movie was recommended"""
+        """Generate recommendations for a new user using cold start approach"""
         pass

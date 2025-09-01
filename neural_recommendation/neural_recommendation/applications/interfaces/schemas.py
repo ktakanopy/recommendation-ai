@@ -1,4 +1,6 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from typing import List, Optional
+from datetime import datetime
 
 # presentation layer dtos
 
@@ -13,10 +15,21 @@ class Token(BaseModel):
     token_type: str
 
 
+class RatingSchema(BaseModel):
+    """Schema for rating data"""
+    movie_id: str  # Will be converted to UUID
+    rating: float
+    timestamp: Optional[datetime] = None
+
+
 class UserSchema(BaseModel):
     username: str
     email: EmailStr
     password: str
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    occupation: Optional[int] = None
+    ratings: Optional[List[RatingSchema]] = None
 
 
 class Message(BaseModel):
@@ -27,6 +40,10 @@ class UserPublic(BaseModel):
     id: int
     username: str
     email: EmailStr
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    occupation: Optional[int] = None
+    ratings_count: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
+from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.recommendation_service_port import RecommendationServicePort
 from neural_recommendation.domain.services.recommendation_service import RecommendationService
 from neural_recommendation.infrastructure.logging.logger import Logger
@@ -13,8 +14,9 @@ logger = Logger.get_logger(__name__)
 class RecommendationApplicationService(RecommendationServicePort):
     """Application service for NCF-based recommendations"""
     
-    def __init__(self, model_repository: ModelInferenceRepository):
+    def __init__(self, model_repository: ModelInferenceRepository, user_repository: UserRepository):
         self._model_repository = model_repository
+        self.user_repository = user_repository
         self._domain_service = None
 
     def _get_domain_service(self) -> RecommendationService:
@@ -58,7 +60,7 @@ class RecommendationApplicationService(RecommendationServicePort):
             
         return self._domain_service
 
-    def generate_recommendations_for_existing_user(
+    def generate_recommendations_for_training_user(
         self,
         user_id: str,
         user_age: float = 25.0,
@@ -68,55 +70,30 @@ class RecommendationApplicationService(RecommendationServicePort):
         """Generate recommendations for an existing user using NCF model"""
         logger.info(f"Generating recommendations for existing user {user_id}")
         
-        domain_service = self._get_domain_service()
-        return domain_service.generate_recommendations_for_user(
+        domain_service = self._get_domain_service() # TODO: check if makes sense to add this to __init__
+        return domain_service.generate_recommendations_for_training_user(
             user_id=user_id,
             user_age=user_age,
             gender=gender,
             num_recommendations=num_recommendations,
         )
 
-    def generate_recommendations_for_new_user(
+    async def generate_recommendations_cold_start(
         self,
-        user_age: float,
-        gender: str,
-        preferred_genres: list[str] = None,
-        occupation: int = 1,
+        user_id: int,
         num_recommendations: int = 10
     ) -> RecommendationResult:
         """Generate recommendations for a new user using NCF cold start approach"""
-        logger.info(f"Generating cold start recommendations for new user: age={user_age}, gender={gender}")
+        logger.info(f"Generating cold start recommendations for user: {user_id}")
+        
+        # Get user from repository
+        user = await self.user_repository.get_by_id(user_id)
+        if not user:
+            raise ValueError(f"User with ID {user_id} not found")
         
         domain_service = self._get_domain_service()
-        # Use the specialized cold start method for new users
-        return domain_service.generate_recommendations_for_new_user(
-            user_age=user_age,
-            gender=gender,
-            occupation=occupation,
+        # Use the specialized cold start method with user data from database
+        return domain_service.generate_recommendations_cold_start(
+            user=user,
             num_recommendations=num_recommendations,
         )
-
-    def explain_recommendation(
-        self,
-        user_id: str,
-        movie_title: str,
-        user_age: float = 25.0,
-        gender: str = "M"
-    ) -> Dict[str, Any]:
-        """Explain why a specific movie was recommended using NCF model"""
-        logger.info(f"Explaining recommendation for user {user_id} and movie {movie_title}")
-        
-        domain_service = self._get_domain_service()
-        return domain_service.explain_recommendation(
-            user_id=user_id,
-            movie_title=movie_title,
-            user_age=user_age,
-            gender=gender
-        )
-
-    def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
-        """Get diverse movies for new user onboarding"""
-        logger.info(f"Getting {num_movies} onboarding movies for new user")
-        
-        domain_service = self._get_domain_service()
-        return domain_service.get_onboarding_movies(num_movies)

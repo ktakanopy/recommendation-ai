@@ -23,7 +23,7 @@ class MLModelSettings(BaseSettings):
     temperature: float = 0.1
     sentence_model: str = "all-MiniLM-L6-v2"
     models_dir: str = "models"
-    model_name: str = "ncf_model.pth"
+    model_name: str = "ncf.pth"
     history_name: str = "training_history.json"
     plot_name: str = "training_curves.png"
     retrain: bool = False

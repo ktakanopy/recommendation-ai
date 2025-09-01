@@ -34,9 +34,7 @@ class RecommendationRequest(BaseModel):
 class NewUserRecommendationRequest(BaseModel):
     """Request schema for new user recommendations"""
 
-    user_age: float
-    gender: str
-    preferred_genres: Optional[List[str]] = None
+    user_id: int  # ID of the created user
     num_recommendations: int = 10
 
 
@@ -69,15 +67,15 @@ class ExplanationResponse(BaseModel):
     genres: str
 
 
-@router.post("/user", response_model=RecommendationResultResponse)
-async def get_recommendations_for_user(
+@router.post("/training-user", response_model=RecommendationResultResponse)
+async def get_recommendations_for_training_user(
     request: RecommendationRequest,
     recommendation_service: Annotated[RecommendationServicePort, Depends(get_recommendation_service)],
 ):
-    """Generate recommendations for an existing user"""
+    """Generate recommendations for an existing user from the training dataaset"""
 
     try:
-        result = recommendation_service.generate_recommendations_for_existing_user(
+        result = recommendation_service.generate_recommendations_for_training_user(
             user_id=request.user_id,
             user_age=request.user_age,
             gender=request.gender,
@@ -93,18 +91,15 @@ async def get_recommendations_for_user(
         raise HTTPException(status_code=500, detail=f"Error generating recommendations: {str(e)}")
 
 
-@router.post("/new-user", response_model=RecommendationResultResponse)
-async def get_recommendations_for_new_user(
+@router.post("/cold-start", response_model=RecommendationResultResponse)
+async def get_recommendations_cold_start(
     request: NewUserRecommendationRequest,
     recommendation_service: Annotated[RecommendationServicePort, Depends(get_recommendation_service)],
 ):
-    """Generate recommendations for a new user based on demographics"""
-
+    """Generate recommendations for a new user (cold-start)"""
     try:
-        result = recommendation_service.generate_recommendations_for_new_user(
-            user_age=request.user_age,
-            gender=request.gender,
-            preferred_genres=request.preferred_genres,
+        result = recommendation_service.generate_recommendations_cold_start(
+            user_id=request.user_id,
             num_recommendations=request.num_recommendations,
         )
 
@@ -115,30 +110,6 @@ async def get_recommendations_for_new_user(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating recommendations: {str(e)}")
-
-
-@router.get("/explain")
-async def explain_recommendation(
-    user_id: Annotated[str, Query(description="User ID")],
-    movie_title: Annotated[str, Query(description="Movie title to explain")],
-    user_age: Annotated[float, Query(description="User's age")] = 25.0,
-    gender: Annotated[str, Query(description="User's gender (M/F)")] = "M",
-    recommendation_service: Annotated[RecommendationServicePort, Depends(get_recommendation_service)] = None,
-) -> ExplanationResponse:
-    """Explain why a specific movie was recommended for a user"""
-
-    try:
-        explanation = recommendation_service.explain_recommendation(
-            user_id=user_id, movie_title=movie_title, user_age=user_age, gender=gender
-        )
-
-        # Convert using mapper
-        response_dict = RecommendationDtoMapper.to_explanation_response_dict(explanation)
-
-        return ExplanationResponse(**response_dict)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error explaining recommendation: {str(e)}")
 
 
 @router.get("/health")

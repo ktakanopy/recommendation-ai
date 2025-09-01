@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import torch
 import numpy as np
@@ -9,6 +9,7 @@ from neural_recommendation.applications.use_cases.deep_learning.candidate_genera
 from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import ColdStartRecommender
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
+from neural_recommendation.domain.models.user import User
 from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
@@ -43,7 +44,7 @@ class RecommendationService:
             liked_threshold=4.0
         )
 
-    def generate_recommendations_for_user(
+    def generate_recommendations_for_training_user(
         self,
         user_id: str,
         user_age: float = 25.0,
@@ -84,28 +85,32 @@ class RecommendationService:
             user_id=user_id, recommendations=recommendations, total_available_movies=len(available_movie_titles)
         )
 
-    def generate_recommendations_for_new_user(
+    def generate_recommendations_cold_start(
         self,
-        user_age: float = 25.0,
-        gender: str = "M",
-        occupation: int = 1,
+        user: User,
         num_recommendations: int = 10,
     ) -> RecommendationResult:
         """Generate recommendations for a new user using cold start approach"""
-        logger.info(f"Generating cold start recommendations for new user: age={user_age}, gender={gender}")
+        logger.info(f"Generating cold start recommendations for user: {user.username} (ID: {user.id})")
         
-        # Prepare user demographics
+        # Prepare user demographics from User object
         user_demographics = {
-            'gender': gender,
-            'age': int(user_age),
-            'occupation': occupation
+            'gender': user.gender or "M",
+            'age': user.age or 25,
+            'occupation': user.occupation or 1
         }
+        
+        # Convert user ratings to tuples for cold start recommender
+        user_ratings = None
+        if user.ratings:
+            user_ratings = [(rating.movie_id, rating.rating) for rating in user.ratings]
+            logger.info(f"User has {len(user_ratings)} existing ratings")
         
         # Use cold start recommender
         try:
             cold_start_results = self.cold_start_recommender.recommend_for_new_user(
                 user_demographics=user_demographics,
-                user_ratings=None,  # No previous ratings for new user
+                user_ratings=user_ratings,
                 num_recommendations=num_recommendations
             )
             
@@ -121,7 +126,7 @@ class RecommendationService:
                 recommendations.append(recommendation)
             
             return RecommendationResult(
-                user_id="new_user",
+                user_id=str(user.id),
                 recommendations=recommendations,
                 total_available_movies=len(self.all_movie_titles)
             )
@@ -129,10 +134,10 @@ class RecommendationService:
         except Exception as e:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
             # Fallback to regular recommendation approach
-            return self.generate_recommendations_for_user(
-                user_id="new_user",
-                user_age=user_age,
-                gender=gender,
+            return self.generate_recommendations_for_training_user(
+                user_id=str(user.id),
+                user_age=float(user.age or 25),
+                gender=user.gender or "M",
                 num_recommendations=num_recommendations
             )
 
@@ -224,58 +229,3 @@ class RecommendationService:
             recommendations.append(recommendation)
 
         return recommendations
-
-    def explain_recommendation(
-        self, user_id: str, movie_title: str, user_age: float = 25.0, gender: str = "M"
-    ) -> Dict[str, Any]:
-        """Explain why a specific movie was recommended using NCF model"""
-        logger.info(f"Explaining recommendation for user {user_id} and movie {movie_title}")
-
-        # Process user demographics
-        user_demographics = {"gender": gender, "age": int(user_age), "occupation": 1}
-
-        try:
-            user_features = self.feature_service.process_user_demographics(user_demographics)
-        except Exception as e:
-            logger.error(f"Error processing user demographics for explanation: {str(e)}")
-            return {
-                "movie_title": movie_title,
-                "explanation": "Unable to process user demographics",
-                "similarity_score": 0.0,
-                "similarity_percentage": 0.0,
-                "genres": "Unknown",
-            }
-
-        # Get movie ID from title
-        movie_id = self.title_to_idx.get(movie_title)
-        if movie_id is None:
-            return {
-                "movie_title": movie_title,
-                "explanation": "Movie not found in recommendation candidates",
-                "similarity_score": 0.0,
-                "similarity_percentage": 0.0,
-                "genres": "Unknown",
-            }
-
-        # Get movie features
-        movie_features = self.feature_service.get_movie_features(movie_id)
-
-        # Calculate interaction probability
-        user_features = user_features.to(self.device).unsqueeze(0)
-        movie_features = movie_features.to(self.device).unsqueeze(0)
-
-        with torch.no_grad():
-            probability = self.model.predict_batch(user_features, movie_features)
-            similarity_score = float(probability.item())
-            similarity_percentage = similarity_score * 100
-
-        return {
-            "movie_title": movie_title,
-            "similarity_score": similarity_score,
-            "similarity_percentage": similarity_percentage,
-            "explanation": (
-                f"This movie has a {similarity_percentage:.1f}% interaction probability based on your "
-                f"demographic profile and the movie's content features."
-            ),
-            "genres": "Unknown",  # Could be enhanced to get actual genres
-        }
