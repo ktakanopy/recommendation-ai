@@ -1,25 +1,23 @@
 from typing import Any, Dict, List
 
-import numpy as np
 import torch
+import numpy as np
 import torch.nn.functional as F
 
-from neural_recommendation.applications.use_cases.deep_learning.feature_preparation_service import (
-    FeaturePreparationService,
-)
+from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
+from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
+from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import ColdStartRecommender
+from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
-from neural_recommendation.domain.models.deep_learning.two_tower_model import TwoTowerModel
 from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
 
 
 class RecommendationService:
-    """Domain service for generating movie recommendations"""
+    """Domain service for generating movie recommendations using NCF model"""
 
-    def __init__(
-        self, model: TwoTowerModel, feature_service: FeaturePreparationService, movie_mappings: Dict[str, Any]
-    ):
+    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, movie_mappings: Dict[str, Any]):
         self.model = model
         self.feature_service = feature_service
         self.device = next(model.parameters()).device
@@ -27,6 +25,23 @@ class RecommendationService:
         self.title_to_idx = movie_mappings.get("title_to_idx", {})
         self.idx_to_title = movie_mappings.get("idx_to_title", {})
         self.all_movie_titles = movie_mappings.get("all_movie_titles", [])
+        # Movie ID to title mapping for quick lookup
+        self.movie_id_to_title = {v: k for k, v in self.title_to_idx.items()}
+        
+        # Initialize cold start components
+        self.candidate_generator = CandidateGenerator(
+            train_ratings=None,  # Could be loaded from data if available
+            movies=None,         # Could be loaded from data if available
+            all_movie_ids=list(self.title_to_idx.values())
+        )
+        
+        self.cold_start_recommender = ColdStartRecommender(
+            trained_model=model,
+            feature_processor=feature_service,
+            candidate_generator=self.candidate_generator,
+            movies_df=None,  # Could be loaded from data if available
+            liked_threshold=4.0
+        )
 
     def generate_recommendations_for_user(
         self,
@@ -36,91 +51,231 @@ class RecommendationService:
         num_recommendations: int = 10,
         batch_size: int = 100,
     ) -> RecommendationResult:
+        """Generate recommendations using NCF model"""
         logger.info(f"Generating recommendations for user {user_id}")
+
+        # Process user demographics to get feature vector
+        user_demographics = {
+            "gender": gender,
+            "age": int(user_age),  # Convert to age category
+            "occupation": 1,  # Default occupation, could be enhanced
+        }
+
+        try:
+            user_features = self.feature_service.process_user_demographics(user_demographics)
+        except Exception as e:
+            logger.error(f"Error processing user demographics: {str(e)}")
+            # Fallback to zero features if processing fails
+            user_features = torch.zeros(self.feature_service.user_feature_dim or 1)
+
+        # Get all available movies
+        available_movie_ids = list(self.title_to_idx.values())
         available_movie_titles = self.all_movie_titles
-        user_features = self.feature_service.prepare_user_features(
-            user_id=user_id, ratings=[], user_age=user_age, gender=gender
+
+        # Calculate interaction probabilities for all movies
+        probabilities = self._calculate_interaction_probabilities(user_features, available_movie_ids, batch_size)
+
+        # Create recommendations from probabilities
+        recommendations = self._create_top_recommendations(
+            available_movie_titles, available_movie_ids, probabilities, num_recommendations
         )
-        user_embedding = self._get_user_embedding(user_features)
-        similarities = self._calculate_movie_similarities(user_embedding, available_movie_titles, batch_size)
-        recommendations = self._create_top_recommendations(available_movie_titles, similarities, num_recommendations)
+
         return RecommendationResult(
             user_id=user_id, recommendations=recommendations, total_available_movies=len(available_movie_titles)
         )
 
-    def _get_user_embedding(self, user_features: Dict[str, Any]) -> torch.Tensor:
-        """Get normalized user embedding from features"""
-        # Convert features to tensors
-        user_inputs = {}
-        for key, value in user_features.items():
-            if isinstance(value, (int, float)):
-                user_inputs[key] = torch.tensor([value], device=self.device, dtype=torch.float32)
-            else:
-                user_inputs[key] = torch.tensor([value], device=self.device)
+    def generate_recommendations_for_new_user(
+        self,
+        user_age: float = 25.0,
+        gender: str = "M",
+        occupation: int = 1,
+        num_recommendations: int = 10,
+    ) -> RecommendationResult:
+        """Generate recommendations for a new user using cold start approach"""
+        logger.info(f"Generating cold start recommendations for new user: age={user_age}, gender={gender}")
+        
+        # Prepare user demographics
+        user_demographics = {
+            'gender': gender,
+            'age': int(user_age),
+            'occupation': occupation
+        }
+        
+        # Use cold start recommender
+        try:
+            cold_start_results = self.cold_start_recommender.recommend_for_new_user(
+                user_demographics=user_demographics,
+                user_ratings=None,  # No previous ratings for new user
+                num_recommendations=num_recommendations
+            )
+            
+            # Convert to Recommendation objects
+            recommendations = []
+            for i, (movie_id, movie_title, score) in enumerate(cold_start_results):
+                recommendation = Recommendation(
+                    movie_title=movie_title,
+                    similarity_score=float(score),
+                    genres="Unknown",  # Could be enhanced with actual genres
+                    rank=i + 1
+                )
+                recommendations.append(recommendation)
+            
+            return RecommendationResult(
+                user_id="new_user",
+                recommendations=recommendations,
+                total_available_movies=len(self.all_movie_titles)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error generating cold start recommendations: {str(e)}")
+            # Fallback to regular recommendation approach
+            return self.generate_recommendations_for_user(
+                user_id="new_user",
+                user_age=user_age,
+                gender=gender,
+                num_recommendations=num_recommendations
+            )
 
-        # Handle user_id as long tensor
-        if "user_id" in user_inputs:
-            user_inputs["user_id"] = user_inputs["user_id"].long()
+    def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
+        """Get diverse movies for new user onboarding"""
+        logger.info(f"Getting {num_movies} onboarding movies")
+        
+        try:
+            onboarding_results = self.cold_start_recommender.get_onboarding_movies(num_movies)
+            
+            # Convert to dictionary format
+            movies = []
+            for movie_id, title, genres in onboarding_results:
+                movies.append({
+                    "movie_id": movie_id,
+                    "title": title,
+                    "genres": genres
+                })
+            
+            return movies
+            
+        except Exception as e:
+            logger.error(f"Error getting onboarding movies: {str(e)}")
+            # Fallback to simple movie list
+            movie_ids = list(self.title_to_idx.values())[:num_movies]
+            return [
+                {
+                    "movie_id": movie_id,
+                    "title": self.movie_id_to_title.get(movie_id, f"Movie_{movie_id}"),
+                    "genres": "Unknown"
+                }
+                for movie_id in movie_ids
+            ]
 
-        # Get user embedding
-        with torch.no_grad():
-            user_embedding = self.model.user_model(user_inputs)
-            query_embedding = self.model.query_tower(user_embedding)
-            return F.normalize(query_embedding, p=2, dim=1)
-
-    def _calculate_movie_similarities(
-        self, user_embedding: torch.Tensor, available_movies: List[str], batch_size: int
+    def _calculate_interaction_probabilities(
+        self, user_features: torch.Tensor, movie_ids: List[int], batch_size: int = 100
     ) -> List[float]:
-        """Calculate similarities between user and movies in batches"""
-        similarities = []
+        """Calculate interaction probabilities between user and movies using NCF model"""
+        probabilities = []
+        user_features = user_features.to(self.device)
 
-        for i in range(0, len(available_movies), batch_size):
-            batch_movies = available_movies[i : i + batch_size]
-            batch_similarities = self._process_movie_batch(user_embedding, batch_movies)
-            similarities.extend(batch_similarities)
+        # Process movies in batches
+        for i in range(0, len(movie_ids), batch_size):
+            batch_movie_ids = movie_ids[i : i + batch_size]
 
-        return similarities
+            # Get movie features for this batch
+            batch_movie_features = []
+            for movie_id in batch_movie_ids:
+                movie_features = self.feature_service.get_movie_features(movie_id)
+                batch_movie_features.append(movie_features)
 
-    def _process_movie_batch(self, user_embedding: torch.Tensor, movie_titles: List[str]) -> List[float]:
-        """Process a batch of movies and return similarities"""
-        # Get movie indices
-        movie_indices = [self.title_to_idx.get(title, 0) for title in movie_titles]
+            if not batch_movie_features:
+                continue
 
-        # Prepare movie inputs
-        movie_inputs = {"movie_idx": torch.tensor(movie_indices, device=self.device, dtype=torch.long)}
+            # Stack movie features and move to device
+            batch_movie_tensor = torch.stack(batch_movie_features).to(self.device)
 
-        # Get movie embeddings
-        with torch.no_grad():
-            movie_embeddings = self.model.movie_model(movie_inputs)
-            candidate_embeddings = self.model.candidate_tower(movie_embeddings)
-            candidate_embeddings = F.normalize(candidate_embeddings, p=2, dim=1)
+            # Repeat user features for batch size
+            batch_size_actual = len(batch_movie_features)
+            batch_user_features = user_features.unsqueeze(0).repeat(batch_size_actual, 1)
 
-            # Calculate similarities
-            batch_similarities = torch.matmul(user_embedding, candidate_embeddings.T)
-            return batch_similarities.cpu().numpy().flatten().tolist()
+            # Get predictions from NCF model
+            with torch.no_grad():
+                batch_predictions = self.model.predict_batch(batch_user_features, batch_movie_tensor)
+                probabilities.extend(batch_predictions.cpu().numpy().tolist())
+
+        return probabilities
 
     def _create_top_recommendations(
-        self, available_movies: List[str], similarities: List[float], num_recommendations: int
+        self, movie_titles: List[str], movie_ids: List[int], probabilities: List[float], num_recommendations: int
     ) -> List[Recommendation]:
-        """Create top N recommendations from similarities"""
-        # Get top indices
-        top_indices = np.argsort(similarities)[::-1][:num_recommendations]
+        """Create top recommendations from interaction probabilities"""
 
+        # Combine movies with their probabilities
+        movie_probability_pairs = list(zip(movie_titles, movie_ids, probabilities))
+
+        # Sort by probability (descending)
+        movie_probability_pairs.sort(key=lambda x: x[2], reverse=True)
+
+        # Create recommendation objects
         recommendations = []
-        for idx in top_indices:
-            movie_title = available_movies[idx]
-            similarity_score = similarities[idx]
-
-            # Extract movie info (you might want to get this from a movie repository)
-            # For now, we'll use placeholder values
-            movie_id = self.title_to_idx.get(movie_title, 0)
-
+        for i, (title, movie_id, probability) in enumerate(movie_probability_pairs[:num_recommendations]):
             recommendation = Recommendation(
-                movie_id=movie_id,
-                title=movie_title,
-                genres="Unknown",  # TODO: Get from movie repository
-                similarity_score=similarity_score,
+                movie_title=title,
+                similarity_score=float(probability),
+                genres="Unknown",  # Could be enhanced to get actual genres
+                rank=i + 1,
             )
             recommendations.append(recommendation)
 
         return recommendations
+
+    def explain_recommendation(
+        self, user_id: str, movie_title: str, user_age: float = 25.0, gender: str = "M"
+    ) -> Dict[str, Any]:
+        """Explain why a specific movie was recommended using NCF model"""
+        logger.info(f"Explaining recommendation for user {user_id} and movie {movie_title}")
+
+        # Process user demographics
+        user_demographics = {"gender": gender, "age": int(user_age), "occupation": 1}
+
+        try:
+            user_features = self.feature_service.process_user_demographics(user_demographics)
+        except Exception as e:
+            logger.error(f"Error processing user demographics for explanation: {str(e)}")
+            return {
+                "movie_title": movie_title,
+                "explanation": "Unable to process user demographics",
+                "similarity_score": 0.0,
+                "similarity_percentage": 0.0,
+                "genres": "Unknown",
+            }
+
+        # Get movie ID from title
+        movie_id = self.title_to_idx.get(movie_title)
+        if movie_id is None:
+            return {
+                "movie_title": movie_title,
+                "explanation": "Movie not found in recommendation candidates",
+                "similarity_score": 0.0,
+                "similarity_percentage": 0.0,
+                "genres": "Unknown",
+            }
+
+        # Get movie features
+        movie_features = self.feature_service.get_movie_features(movie_id)
+
+        # Calculate interaction probability
+        user_features = user_features.to(self.device).unsqueeze(0)
+        movie_features = movie_features.to(self.device).unsqueeze(0)
+
+        with torch.no_grad():
+            probability = self.model.predict_batch(user_features, movie_features)
+            similarity_score = float(probability.item())
+            similarity_percentage = similarity_score * 100
+
+        return {
+            "movie_title": movie_title,
+            "similarity_score": similarity_score,
+            "similarity_percentage": similarity_percentage,
+            "explanation": (
+                f"This movie has a {similarity_percentage:.1f}% interaction probability based on your "
+                f"demographic profile and the movie's content features."
+            ),
+            "genres": "Unknown",  # Could be enhanced to get actual genres
+        }

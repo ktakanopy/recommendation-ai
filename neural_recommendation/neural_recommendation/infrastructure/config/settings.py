@@ -23,7 +23,7 @@ class MLModelSettings(BaseSettings):
     temperature: float = 0.1
     sentence_model: str = "all-MiniLM-L6-v2"
     models_dir: str = "models"
-    model_name: str = "two_tower_model.pth"
+    model_name: str = "ncf_model.pth"
     history_name: str = "training_history.json"
     plot_name: str = "training_curves.png"
     retrain: bool = False
@@ -40,3 +40,8 @@ class MLModelSettings(BaseSettings):
     train_split: float = 0.6
     val_split: float = 0.2
     test_split: float = 0.2
+    
+    # NCF-specific settings
+    model_type: str = "ncf"  # "ncf" or "two_tower" 
+    user_feature_dim: int | None = None
+    movie_feature_dim: int | None = None
