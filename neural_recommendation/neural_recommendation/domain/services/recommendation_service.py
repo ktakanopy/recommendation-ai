@@ -7,11 +7,9 @@ import torch.nn.functional as F
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
 from neural_recommendation.domain.models.deep_learning.two_tower_model import TwoTowerModel
 from neural_recommendation.infrastructure.logging.logger import Logger
-from neural_recommendation.neural_recommendation.applications.use_cases.deep_learning.feature_preparation_service import (
+from neural_recommendation.applications.use_cases.deep_learning.feature_preparation_service import (
     FeaturePreparationService,
 )
-from neural_recommendation.neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
-from neural_recommendation.neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 
 logger = Logger.get_logger(__name__)
 
@@ -19,44 +17,33 @@ logger = Logger.get_logger(__name__)
 class RecommendationService:
     """Domain service for generating movie recommendations"""
 
-    def __init__(self, model: TwoTowerModel, feature_service: FeaturePreparationService, movie_repository: MovieRepository, user_repository: UserRepository):
+    def __init__(self, model: TwoTowerModel, feature_service: FeaturePreparationService, movie_mappings: Dict[str, Any]):
         self.model = model
         self.feature_service = feature_service
         self.device = next(model.parameters()).device
         self.model.eval()
-
-        self.movie_repository = movie_repository
-        self.user_repository = user_repository
+        self.title_to_idx = movie_mappings.get("title_to_idx", {})
+        self.idx_to_title = movie_mappings.get("idx_to_title", {})
+        self.all_movie_titles = movie_mappings.get("all_movie_titles", [])
 
     def generate_recommendations_for_user(
         self,
-        user_id: int,
+        user_id: str,
+        user_age: float = 25.0,
+        gender: str = "M",
         num_recommendations: int = 10,
         batch_size: int = 100,
     ) -> RecommendationResult:
         logger.info(f"Generating recommendations for user {user_id}")
-        """Generate recommendations for a single user"""
-
-        user_ratings = await self.user_repository.get_user_ratings(user_id)
-        available_movies = [rating.movie_id for rating in user_ratings]
-        available_movie_titles = [self.movie_repository.get_by_id(movie_id).title for movie_id in available_movies]
-
-        # Prepare user features through injected service
+        available_movie_titles = self.all_movie_titles
         user_features = self.feature_service.prepare_user_features(
-            user_id=user_id, ratings=ratings or [], user_age=user_age, gender=gender
+            user_id=user_id, ratings=[], user_age=user_age, gender=gender
         )
-
-        # Get user embedding
         user_embedding = self._get_user_embedding(user_features)
-
-        # Calculate similarities with all available movies
-        similarities = self._calculate_movie_similarities(user_embedding, available_movies, batch_size)
-
-        # Get top recommendations
-        recommendations = self._create_top_recommendations(available_movies, similarities, num_recommendations)
-
+        similarities = self._calculate_movie_similarities(user_embedding, available_movie_titles, batch_size)
+        recommendations = self._create_top_recommendations(available_movie_titles, similarities, num_recommendations)
         return RecommendationResult(
-            user_id=user_id, recommendations=recommendations, total_available_movies=len(available_movies)
+            user_id=user_id, recommendations=recommendations, total_available_movies=len(available_movie_titles)
         )
 
     def _get_user_embedding(self, user_features: Dict[str, Any]) -> torch.Tensor:

@@ -11,7 +11,11 @@ from neural_recommendation.applications.use_cases.user.update_user import Update
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
-from neural_recommendation.infrastructure.config.dependencies import get_auth_service, get_current_user, get_user_repository
+from neural_recommendation.infrastructure.config.dependencies import (
+    get_auth_service,
+    get_current_user,
+    get_user_repository,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 

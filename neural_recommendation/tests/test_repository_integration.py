@@ -3,7 +3,9 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from neural_recommendation.domain.models.user import User as DomainUser
-from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
+from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
+    SQLAlchemyUserRepository,
+)
 
 from .conftest import BaseIntegrationTest
 

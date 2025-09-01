@@ -4,16 +4,21 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from neural_recommendation.applications.services.recommendation_application_service import RecommendationApplicationService
-from neural_recommendation.applications.use_cases.deep_learning.generate_recommendation import RecommendationGenerator
+from neural_recommendation.applications.services.recommendation_application_service import (
+    RecommendationApplicationService,
+)
 from neural_recommendation.domain.models.deep_learning.model_config import ModelConfig
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.domain.ports.services.recommendation_service_port import RecommendationServicePort
-from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import ModelInferenceManagerAdapter
-from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import SQLAlchemyUserRepository
+from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
+    ModelInferenceManagerAdapter,
+)
+from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
+    SQLAlchemyUserRepository,
+)
 from neural_recommendation.infrastructure.adapters.services.jwt_auth_service import JWTAuthService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings, Settings
 from neural_recommendation.infrastructure.persistence.database import get_session
@@ -66,15 +71,7 @@ def get_model_inference_repository(
     )
 
 
-def get_recommendation_generator(
-    model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)]
-) -> RecommendationGenerator:
-    """Get recommendation generator with injected dependencies"""
-    return RecommendationGenerator(model_repository)
-
-
 def get_recommendation_service(
-    recommendation_generator: Annotated[RecommendationGenerator, Depends(get_recommendation_generator)]
+    model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)]
 ) -> RecommendationServicePort:
-    """Get recommendation application service with injected dependencies"""
-    return RecommendationApplicationService(recommendation_generator)
+    return RecommendationApplicationService(model_repository)

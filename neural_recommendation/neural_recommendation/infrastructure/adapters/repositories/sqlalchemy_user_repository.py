@@ -3,8 +3,10 @@ from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from neural_recommendation.domain.models.rating import Rating
 from neural_recommendation.domain.models.user import User as DomainUser
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
+from neural_recommendation.infrastructure.persistence.models import Rating as SQLRating
 from neural_recommendation.infrastructure.persistence.models import User as SQLUser
 
 
@@ -12,26 +14,37 @@ class SQLAlchemyUserRepository(UserRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    def _to_domain(self, sql_user: SQLUser) -> DomainUser:
+    def _to_domain(self, sql_user: SQLUser, include_ratings: bool = False) -> DomainUser:
         """Convert SQLAlchemy model to domain model"""
+        domain_ratings = None
+        if include_ratings:
+            domain_ratings = []
+            if hasattr(sql_user, 'ratings') and sql_user.ratings:
+                for sql_rating in sql_user.ratings:
+                    domain_rating = Rating(
+                        id=sql_rating.id,
+                        user_id=sql_rating.user_id,
+                        movie_id=sql_rating.movie_id,
+                        rating=sql_rating.rating,
+                        timestamp=sql_rating.timestamp
+                    )
+                    domain_ratings.append(domain_rating)
+        
         return DomainUser(
-            id=sql_user.id,
             username=sql_user.username,
             email=sql_user.email,
-            ratings=sql_user.ratings,
             password_hash=sql_user.password,
+            id=sql_user.id,
             created_at=sql_user.created_at,
+            ratings=domain_ratings,
         )
 
     def _to_sql(self, domain_user: DomainUser) -> SQLUser:
         """Convert domain model to SQLAlchemy model"""
         return SQLUser(
-            id=domain_user.id,
             username=domain_user.username,
             email=domain_user.email,
             password=domain_user.password_hash,
-            ratings=domain_user.ratings,
-            created_at=domain_user.created_at,
         )
 
     async def create(self, user: DomainUser) -> DomainUser:
@@ -39,7 +52,6 @@ class SQLAlchemyUserRepository(UserRepository):
             username=user.username,
             email=user.email,
             password=user.password_hash,
-            ratings=user.ratings,
         )
         self.session.add(sql_user)
         await self.session.commit()
@@ -63,6 +75,27 @@ class SQLAlchemyUserRepository(UserRepository):
             select(SQLUser).where((SQLUser.username == username) | (SQLUser.email == email))
         )
         return self._to_domain(sql_user) if sql_user else None
+
+    async def get_user_ratings(self, user_id: int) -> List[Rating]:
+        """Get all ratings for a specific user"""
+        
+        sql_ratings = await self.session.scalars(
+            select(SQLRating).where(SQLRating.user_id == user_id)
+        )
+        ratings = sql_ratings.all()
+        
+        domain_ratings = []
+        for sql_rating in ratings:
+            domain_rating = Rating(
+                id=sql_rating.id,
+                user_id=sql_rating.user_id,
+                movie_id=sql_rating.movie_id,
+                rating=sql_rating.rating,
+                timestamp=sql_rating.timestamp
+            )
+            domain_ratings.append(domain_rating)
+        
+        return domain_ratings
 
     async def get_all(self, offset: int = 0, limit: int = 100) -> List[DomainUser]:
         query = await self.session.scalars(select(SQLUser).offset(offset).limit(limit))

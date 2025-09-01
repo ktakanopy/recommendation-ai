@@ -71,9 +71,6 @@ async def get_recommendations_for_user(
     """Generate recommendations for an existing user"""
 
     try:
-        # Convert RatingRequest objects to domain Rating objects
-        ratings = RecommendationDtoMapper.rating_requests_to_domain(request.ratings)
-
         result = recommendation_service.generate_recommendations_for_existing_user(
             user_id=request.user_id,
             user_age=request.user_age,

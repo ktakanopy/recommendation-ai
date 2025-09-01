@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import List
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
+from sqlalchemy import ForeignKey, func
+from sqlalchemy.orm import Mapped, mapped_column, registry, relationship, declarative_base
 
 table_registry = registry()
 
@@ -18,8 +18,12 @@ class Rating:
     __tablename__ = "ratings"
 
     id: Mapped[uuid.UUID] = mapped_column(init=False, primary_key=True)
-    user_id: Mapped[int]
-    movie_id: Mapped[uuid.UUID]
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    movie_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("movies.id"))
+    rating: Mapped[float]
+    timestamp: Mapped[datetime] = mapped_column(server_default=func.now())
+    
+    user: Mapped["User"] = relationship("User", back_populates="ratings")
 
 
 @table_registry.mapped_as_dataclass
@@ -30,7 +34,7 @@ class User:
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str]
     email: Mapped[str] = mapped_column(unique=True)
-    ratings: Mapped[List[Rating]] = relationship("Rating", back_populates="user")
+    ratings: Mapped[List[Rating]] = relationship("Rating", back_populates="user", default_factory=list, init=False)
 
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
 

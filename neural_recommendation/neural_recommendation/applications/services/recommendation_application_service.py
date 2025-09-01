@@ -1,48 +1,62 @@
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict
 
+from neural_recommendation.applications.use_cases.deep_learning.feature_preparation_service import (
+    FeaturePreparationService,
+)
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
-from neural_recommendation.domain.models.rating import Rating
+from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.domain.ports.services.recommendation_service_port import RecommendationServicePort
+from neural_recommendation.domain.services.recommendation_service import RecommendationService
 
 
 class RecommendationApplicationService(RecommendationServicePort):
-    """Application service that implements the recommendation port and handles DTO mapping"""
+    def __init__(self, model_repository: ModelInferenceRepository):
+        self._model_repository = model_repository
+        self._domain_service = None
 
-    def __init__(self, recommendation_generator):
-        self._recommendation_generator = recommendation_generator
+    def _get_domain_service(self) -> RecommendationService:
+        if self._domain_service is None:
+            model, feature_info = self._model_repository.load_model_and_features()
+            feature_service = FeaturePreparationService(feature_info)
+            title_to_idx = feature_info.sentence_embeddings.title_to_idx
+            idx_to_title = {idx: title for title, idx in title_to_idx.items()}
+            all_movie_titles = list(title_to_idx.keys())
+            movie_mappings = {
+                "title_to_idx": title_to_idx,
+                "idx_to_title": idx_to_title,
+                "all_movie_titles": all_movie_titles,
+            }
+            self._domain_service = RecommendationService(model=model, feature_service=feature_service, movie_mappings=movie_mappings)
+        return self._domain_service
 
     def generate_recommendations_for_existing_user(
         self,
         user_id: str,
         user_age: float = 25.0,
         gender: str = "M",
-        watched_movie_titles: Optional[Set[str]] = None,
-        ratings: Optional[List[Rating]] = None,
         num_recommendations: int = 10
     ) -> RecommendationResult:
-        """Generate recommendations for an existing user"""
-        return self._recommendation_generator.generate_recommendations_for_existing_user(
+        domain_service = self._get_domain_service()
+        return domain_service.generate_recommendations_for_user(
             user_id=user_id,
             user_age=user_age,
             gender=gender,
-            watched_movie_titles=watched_movie_titles,
-            ratings=ratings,
-            num_recommendations=num_recommendations
+            num_recommendations=num_recommendations,
         )
 
     def generate_recommendations_for_new_user(
         self,
         user_age: float,
         gender: str,
-        preferred_genres: List[str] = None,
+        preferred_genres: list[str] = None,
         num_recommendations: int = 10
     ) -> RecommendationResult:
-        """Generate recommendations for a new user"""
-        return self._recommendation_generator.generate_recommendations_for_new_user(
+        domain_service = self._get_domain_service()
+        return domain_service.generate_recommendations_for_user(
+            user_id="new_user",
             user_age=user_age,
             gender=gender,
-            preferred_genres=preferred_genres,
-            num_recommendations=num_recommendations
+            num_recommendations=num_recommendations,
         )
 
     def explain_recommendation(
@@ -52,10 +66,30 @@ class RecommendationApplicationService(RecommendationServicePort):
         user_age: float = 25.0,
         gender: str = "M"
     ) -> Dict[str, Any]:
-        """Explain why a specific movie was recommended"""
-        return self._recommendation_generator.explain_recommendation(
+        domain_service = self._get_domain_service()
+        result = domain_service.generate_recommendations_for_user(
             user_id=user_id,
-            movie_title=movie_title,
             user_age=user_age,
-            gender=gender
+            gender=gender,
+            num_recommendations=1000,
         )
+        target = None
+        for rec in result.recommendations:
+            if rec.title == movie_title:
+                target = rec
+                break
+        if target is None:
+            return {
+                "movie_title": movie_title,
+                "explanation": "Movie not found in recommendation candidates",
+                "similarity_score": 0.0,
+                "similarity_percentage": 0.0,
+                "genres": "Unknown",
+            }
+        return {
+            "movie_title": movie_title,
+            "similarity_score": target.similarity_score,
+            "similarity_percentage": target.similarity_percentage,
+            "explanation": f"This movie has a {target.similarity_percentage:.1f}% similarity match with your preferences based on your viewing history and demographic profile.",
+            "genres": target.genres,
+        }

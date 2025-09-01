@@ -166,12 +166,12 @@ class ModelEvaluator:
                 batch_ground_truth = []
                 for i in range(len(user_inputs["user_id"])):
                     user_id = user_inputs["user_id"][i].item()
-                    
+
                     if evaluation_type == "leave_one_out":
                         # For leave-one-out: ground truth is the test movie user is interacting with
                         # But we need to filter this against training interactions to avoid cold-start
                         test_movie = movie_inputs["movie_idx"][i].item()
-                        
+
                         # Check if user has training history
                         if user_id in user_interactions and len(user_interactions[user_id]) > 0:
                             # User has training history, use test movie as ground truth
@@ -227,25 +227,25 @@ class ModelEvaluator:
                 user_interactions[user_id].add(movie_idx)
 
         return user_interactions
-    
+
     @staticmethod
     def build_user_interactions_from_training_data(train_ratings: Dict[str, Any], user_id_to_idx: Dict[str, int], title_to_idx: Dict[str, int]) -> Dict[int, Set[int]]:
         """Build user interaction history from raw training data to avoid data leakage"""
         user_interactions = {}
-        
+
         for i in range(len(train_ratings["user_id"])):
             user_id_str = train_ratings["user_id"][i]
             movie_title = train_ratings["movie_title"][i]
-            
+
             # Convert to indices
             user_id = user_id_to_idx.get(user_id_str, -1)
             movie_idx = title_to_idx.get(movie_title, -1)
-            
+
             if user_id != -1 and movie_idx != -1:
                 if user_id not in user_interactions:
                     user_interactions[user_id] = set()
                 user_interactions[user_id].add(movie_idx)
-        
+
         return user_interactions
 
     @staticmethod
