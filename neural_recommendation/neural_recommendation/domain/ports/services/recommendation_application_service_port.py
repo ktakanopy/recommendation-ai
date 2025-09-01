@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
 
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 
 
-class RecommendationServicePort(ABC):
+class RecommendationApplicationServicePort(ABC):
     """Port for recommendation generation operations"""
 
     @abstractmethod
-    def generate_recommendations_for_existing_user(
+    def generate_recommendations_for_training_user(
         self, user_id: str, user_age: float = 25.0, gender: str = "M", num_recommendations: int = 10
     ) -> RecommendationResult:
         """Generate recommendations for an existing user"""

@@ -65,7 +65,7 @@ class ModelInferenceManager:
                         sentence_embeddings[key] = value.to(self.device)
 
             return FeatureInfoDto.from_dict(additional_feature_info)
-        
+
         except Exception as e:
             logger.warning(f"Error loading feature info: {str(e)}, creating dummy feature info")
             return self._create_dummy_feature_info()
@@ -73,7 +73,7 @@ class ModelInferenceManager:
     def _load_ncf_model(self, model_filename: str) -> NCFModel:
         """Load trained NCF model"""
         model_path = os.path.join(self.models_dir, model_filename)
-        
+
         if not os.path.exists(model_path):
             logger.warning(f"Model file not found: {model_path}, creating dummy NCF model for testing")
             return self._create_dummy_ncf_model()
@@ -87,7 +87,7 @@ class ModelInferenceManager:
             model.eval()
             logger.info(f"Successfully loaded NCF model from {model_path}")
             return model
-            
+
         except Exception as e:
             logger.warning(f"Failed to load NCF model: {str(e)}, creating dummy model for testing")
             return self._create_dummy_ncf_model()
@@ -95,36 +95,32 @@ class ModelInferenceManager:
     def _create_dummy_feature_info(self) -> FeatureInfoDto:
         """Create dummy feature info for testing purposes"""
         logger.info("Creating dummy feature info for NCF testing")
-        
+
         # Create minimal sentence embeddings structure
         class DummySentenceEmbeddings:
             def __init__(self):
                 self.title_to_idx = {f"Movie_{i}": i for i in range(100)}
                 self.embedding_dim = 384  # Standard sentence-transformer dimension
                 self.embedding_matrix = torch.randn(100, 384)
-        
+
         # Create dummy feature info
         dummy_feature_info = FeatureInfoDto(
             unique_user_ids=[f"user_{i}" for i in range(100)],
             sentence_embeddings=DummySentenceEmbeddings(),
-            additional_data={}
+            additional_data={},
         )
         return dummy_feature_info
 
     def _create_dummy_ncf_model(self) -> NCFModel:
         """Create dummy NCF model for testing purposes"""
         logger.info("Creating dummy NCF model for testing")
-        
+
         # Use typical dimensions for MovieLens-like data
         user_feature_dim = 50  # Typical for age + gender + occupation one-hot encoded
         movie_feature_dim = 768  # Typical for sentence transformer embeddings (384*2 for title+genre)
-        
-        model = NCFModel(
-            user_feature_dim=user_feature_dim,
-            movie_feature_dim=movie_feature_dim,
-            num_negatives=4
-        )
-        
+
+        model = NCFModel(user_feature_dim=user_feature_dim, movie_feature_dim=movie_feature_dim, num_negatives=4)
+
         model.to(self.device)
         model.eval()
         return model

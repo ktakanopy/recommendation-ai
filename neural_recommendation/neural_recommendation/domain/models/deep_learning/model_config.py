@@ -31,7 +31,7 @@ class ModelConfig:
     use_hard_negatives: bool
     hard_negative_ratio: float
     dropout_rate: float
-    
+
     # Optional fields with defaults (NCF-specific parameters) - must come last
     user_feature_dim: Optional[int] = None
     movie_feature_dim: Optional[int] = None
@@ -66,9 +66,9 @@ class ModelConfig:
             num_sampled_negatives=getattr(settings, "num_sampled_negatives", 1000),
             dropout_rate=getattr(settings, "dropout_rate", 0.3),
             # NCF-specific settings
-            model_type=getattr(settings, 'model_type', 'ncf'),
-            user_feature_dim=getattr(settings, 'user_feature_dim', None),
-            movie_feature_dim=getattr(settings, 'movie_feature_dim', None),
+            model_type=getattr(settings, "model_type", "ncf"),
+            user_feature_dim=getattr(settings, "user_feature_dim", None),
+            movie_feature_dim=getattr(settings, "movie_feature_dim", None),
         )
 
     def to_dict(self) -> dict:

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # presentation layer dtos
 
@@ -17,6 +18,7 @@ class Token(BaseModel):
 
 class RatingSchema(BaseModel):
     """Schema for rating data"""
+
     movie_id: str  # Will be converted to UUID
     rating: float
     timestamp: Optional[datetime] = None

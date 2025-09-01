@@ -200,7 +200,7 @@ def mock_db_time():
 # Shared fixtures for use case testing
 @pytest.fixture
 def mock_user_repository():
-    """Mock user repository for use case te ing"""
+    """Mock user repository for use case testing"""
     return AsyncMock(spec=UserRepository)
 
 
@@ -208,3 +208,135 @@ def mock_user_repository():
 def mock_auth_service():
     """Mock auth service for use case testing"""
     return MagicMock(spec=AuthService)
+
+
+# Recommendation testing fixtures
+@pytest.fixture
+def mock_ncf_model():
+    """Mock NCF model for recommendation testing"""
+    model = Mock()
+    model.parameters.return_value = iter([torch.tensor([1.0])])  # For device detection
+    model.eval = Mock()
+    model.predict_batch = Mock(return_value=torch.tensor([0.8, 0.7, 0.6]))
+    model.user_fc1 = Mock()
+    model.user_fc2 = Mock()
+    model.user_bn1 = Mock()
+    model.user_bn2 = Mock()
+    model.dropout = Mock()
+    return model
+
+
+@pytest.fixture
+def mock_feature_processor():
+    """Mock feature processor for recommendation testing"""
+    processor = Mock()
+    processor.process_user_demographics = Mock(return_value=torch.tensor([0.1, 0.2, 0.3]))
+    processor.get_movie_features = Mock(return_value=torch.tensor([0.4, 0.5, 0.6]))
+    processor.user_feature_dim = 10
+    processor.user_features_cache = {1: torch.tensor([0.1, 0.2]), 2: torch.tensor([0.3, 0.4])}
+    return processor
+
+
+@pytest.fixture
+def mock_candidate_generator():
+    """Mock candidate generator for recommendation testing"""
+    generator = Mock()
+    generator.generate_hybrid_candidates = Mock(return_value=[1, 2, 3])
+    generator.user_interacted_items = {1: [101, 102], 2: [103, 104]}
+    generator.movie_to_genres = {1: ["Action"], 2: ["Comedy"], 3: ["Drama"]}
+    generator.get_genres_from_movies = Mock(return_value={"Action": 2, "Comedy": 1})
+    generator.all_movie_ids = [1, 2, 3, 4, 5]
+    return generator
+
+
+@pytest.fixture
+def mock_cold_start_recommender():
+    """Mock cold start recommender for testing"""
+    recommender = Mock()
+    recommender.recommend_for_new_user = Mock(return_value=[
+        (1, "Movie A", 0.9),
+        (2, "Movie B", 0.8),
+        (3, "Movie C", 0.7)
+    ])
+    recommender.get_onboarding_movies = Mock(return_value=[
+        (1, "Popular Movie 1", "Action|Adventure"),
+        (2, "Popular Movie 2", "Comedy"),
+        (3, "Popular Movie 3", "Drama")
+    ])
+    return recommender
+
+
+@pytest.fixture
+def sample_movie_mappings():
+    """Sample movie mappings for testing"""
+    return {
+        "title_to_idx": {
+            "Movie A": 1,
+            "Movie B": 2,
+            "Movie C": 3,
+            "Action Movie": 4,
+            "Comedy Movie": 5
+        },
+        "idx_to_title": {
+            1: "Movie A",
+            2: "Movie B", 
+            3: "Movie C",
+            4: "Action Movie",
+            5: "Comedy Movie"
+        },
+        "all_movie_titles": ["Movie A", "Movie B", "Movie C", "Action Movie", "Comedy Movie"]
+    }
+
+
+@pytest.fixture
+def sample_user_with_ratings():
+    """Sample user with ratings for testing"""
+    import uuid
+    from datetime import datetime
+    from neural_recommendation.domain.models.user import User
+    from neural_recommendation.domain.models.rating import Rating
+    
+    ratings = [
+        Rating(
+            id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            movie_id=uuid.uuid4(),
+            rating=4.5,
+            timestamp=datetime.now()
+        ),
+        Rating(
+            id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            movie_id=uuid.uuid4(),
+            rating=3.0,
+            timestamp=datetime.now()
+        )
+    ]
+    
+    return User(
+        id=1,
+        username="testuser",
+        email="test@example.com",
+        password_hash="hashed_password",
+        age=25,
+        gender="M",
+        occupation=1,
+        ratings=ratings
+    )
+
+
+@pytest.fixture
+def sample_user_without_ratings():
+    """Sample user without ratings for testing"""
+    from neural_recommendation.domain.models.user import User
+    
+    return User(
+        id=2,
+        username="newuser",
+        email="new@example.com",
+        password_hash="hashed_password",
+        age=30,
+        gender="F",
+        occupation=2,
+        ratings=None
+    )

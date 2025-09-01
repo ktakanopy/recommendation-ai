@@ -1,6 +1,7 @@
-from functools import lru_cache
 from collections import defaultdict
-from typing import Dict, List, Set, Optional
+from functools import lru_cache
+from typing import Dict, List, Optional, Set
+
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
@@ -13,13 +14,17 @@ logger = Logger.get_logger(__name__)
 
 class CandidateGenerator:
     """Optimized candidate generation for NCF recommendations"""
-    
-    def __init__(self, train_ratings: Optional[pd.DataFrame] = None, movies: Optional[pd.DataFrame] = None, 
-                 all_movie_ids: Optional[List[int]] = None):
+
+    def __init__(
+        self,
+        train_ratings: Optional[pd.DataFrame] = None,
+        movies: Optional[pd.DataFrame] = None,
+        all_movie_ids: Optional[List[int]] = None,
+    ):
         self.train_ratings = train_ratings
         self.movies = movies
         self.all_movie_ids = all_movie_ids or []
-        
+
         # Initialize empty data structures
         self.user_interacted_items: Dict[int, List[int]] = {}
         self.item_popularity = None
@@ -31,35 +36,33 @@ class CandidateGenerator:
         self.user_genre_profiles: Dict[int, Dict[str, int]] = {}
         self.all_genres: List[str] = []
         self.genre_to_idx: Dict[str, int] = {}
-        
+
         # Pre-compute if data is available
         if train_ratings is not None:
             self._precompute_data()
-    
+
     def _precompute_data(self):
         """Pre-compute all necessary data structures"""
         logger.info("Pre-computing candidate generation data structures...")
-        
+
         if self.train_ratings is not None:
-            self.user_interacted_items = (
-                self.train_ratings.groupby("user_id")["movie_id"].apply(list).to_dict()
-            )
+            self.user_interacted_items = self.train_ratings.groupby("user_id")["movie_id"].apply(list).to_dict()
             self._precompute_popularity()
-            
+
         if self.movies is not None:
             self._precompute_movie_genres()
-            
+
         if self.train_ratings is not None and len(self.user_interacted_items) > 0:
             self._precompute_user_similarity()
             self._precompute_genre_profiles()
-            
+
         logger.info("Candidate generation pre-computation completed")
 
     def _precompute_popularity(self):
         """Pre-compute item popularity ranking"""
         if self.train_ratings is None:
             return
-            
+
         self.item_popularity = self.train_ratings["movie_id"].value_counts()
         self.popular_items = self.item_popularity.index.tolist()
         logger.info(f"Pre-computed popularity for {len(self.popular_items)} items")
@@ -68,19 +71,19 @@ class CandidateGenerator:
         """Create movie-to-genres dictionary for O(1) lookups"""
         if self.movies is None:
             return
-            
+
         self.movie_to_genres = {}
         for _, row in self.movies.iterrows():
             if pd.notna(row.get("genres")):
                 self.movie_to_genres[row["movie_id"]] = row["genres"].split("|")
-        
+
         logger.info(f"Pre-computed genres for {len(self.movie_to_genres)} movies")
 
     def _precompute_user_similarity(self):
         """Pre-compute user similarity matrix using vectorized operations"""
         if not self.user_interacted_items:
             return
-            
+
         try:
             # Create user-item matrix
             users = list(self.user_interacted_items.keys())
@@ -97,17 +100,15 @@ class CandidateGenerator:
             # Create binary user-item matrix
             data = np.ones(len(rows))
             max_item_id = max(self.all_movie_ids) if self.all_movie_ids else max(cols) if cols else 1
-            user_item_matrix = csr_matrix(
-                (data, (rows, cols)), shape=(len(users), max_item_id + 1)
-            )
+            user_item_matrix = csr_matrix((data, (rows, cols)), shape=(len(users), max_item_id + 1))
 
             # Compute user similarity (cosine similarity for efficiency)
             self.user_similarity = cosine_similarity(user_item_matrix)
             self.user_to_idx = user_to_idx
             self.idx_to_user = {idx: user for user, idx in user_to_idx.items()}
-            
+
             logger.info(f"Pre-computed user similarity matrix for {len(users)} users")
-            
+
         except Exception as e:
             logger.warning(f"Failed to compute user similarity: {str(e)}")
 
@@ -115,7 +116,7 @@ class CandidateGenerator:
         """Pre-compute genre profiles for users"""
         if not self.user_interacted_items or not self.movie_to_genres:
             return
-            
+
         all_genres = set()
         for genres_list in self.movie_to_genres.values():
             all_genres.update(genres_list)
@@ -130,7 +131,7 @@ class CandidateGenerator:
                     for genre in self.movie_to_genres[item]:
                         genre_counts[genre] += 1
             self.user_genre_profiles[user_id] = dict(genre_counts)
-            
+
         logger.info(f"Pre-computed genre profiles for {len(self.user_genre_profiles)} users")
 
     def get_genres_from_movies(self, movies_ids: List[int]) -> Dict[str, int]:
@@ -155,11 +156,9 @@ class CandidateGenerator:
         """Optimized popularity-based candidate generation"""
         if not self.popular_items:
             return self.all_movie_ids[:num_candidates] if self.all_movie_ids else []
-            
+
         available_items = (
-            set(self.get_available_items(user_id))
-            if user_available_items is None
-            else user_available_items
+            set(self.get_available_items(user_id)) if user_available_items is None else user_available_items
         )
 
         candidates = []
@@ -173,9 +172,7 @@ class CandidateGenerator:
 
     def generate_collaborative_candidates(self, user_id: int, num_candidates: int = 100) -> List[int]:
         """Optimized collaborative filtering using pre-computed similarity"""
-        if (user_id not in self.user_to_idx or 
-            self.user_similarity is None or 
-            not self.user_interacted_items):
+        if user_id not in self.user_to_idx or self.user_similarity is None or not self.user_interacted_items:
             return self.get_available_items(user_id)[:num_candidates]
 
         user_idx = self.user_to_idx[user_id]
@@ -197,9 +194,7 @@ class CandidateGenerator:
                         candidate_scores[item] += similarity_score
 
         # Sort by score and return top candidates
-        sorted_candidates = sorted(
-            candidate_scores.items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
         return [item for item, score in sorted_candidates[:num_candidates]]
 
     def generate_content_candidates(
@@ -210,18 +205,12 @@ class CandidateGenerator:
         num_candidates: int = 100,
     ) -> List[int]:
         """Optimized content-based filtering using pre-computed genre profiles"""
-        user_genres = (
-            self.user_genre_profiles.get(user_id, {})
-            if passed_user_genres is None
-            else passed_user_genres
-        )
+        user_genres = self.user_genre_profiles.get(user_id, {}) if passed_user_genres is None else passed_user_genres
         if not user_genres:
             return self.get_available_items(user_id)[:num_candidates]
 
         available_items = (
-            set(self.get_available_items(user_id))
-            if user_available_items is None
-            else user_available_items
+            set(self.get_available_items(user_id)) if user_available_items is None else user_available_items
         )
 
         # Score items by genre overlap
@@ -235,28 +224,18 @@ class CandidateGenerator:
                     candidate_scores[item] = score
 
         # Sort by score and return top candidates
-        sorted_candidates = sorted(
-            candidate_scores.items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
         return [item for item, score in sorted_candidates[:num_candidates]]
 
     def generate_hybrid_candidates(self, user_id: int, num_candidates: int = 100) -> List[int]:
         """Optimized hybrid candidate generation"""
         # Get candidates from each method
-        pop_candidates = self.generate_popularity_candidates(
-            user_id, num_candidates=num_candidates // 3
-        )
-        collab_candidates = self.generate_collaborative_candidates(
-            user_id, num_candidates=num_candidates // 3
-        )
-        content_candidates = self.generate_content_candidates(
-            user_id, num_candidates=num_candidates // 3
-        )
+        pop_candidates = self.generate_popularity_candidates(user_id, num_candidates=num_candidates // 3)
+        collab_candidates = self.generate_collaborative_candidates(user_id, num_candidates=num_candidates // 3)
+        content_candidates = self.generate_content_candidates(user_id, num_candidates=num_candidates // 3)
 
         # Combine and deduplicate using set operations
-        hybrid_candidates = list(
-            dict.fromkeys(pop_candidates + collab_candidates + content_candidates)
-        )
+        hybrid_candidates = list(dict.fromkeys(pop_candidates + collab_candidates + content_candidates))
 
         # Fill remaining slots with random items
         remaining_slots = num_candidates - len(hybrid_candidates)

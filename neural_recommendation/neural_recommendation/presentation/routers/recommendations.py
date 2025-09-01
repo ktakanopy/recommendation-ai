@@ -1,12 +1,14 @@
 import uuid
 from datetime import datetime
-from typing import Annotated, List, Optional
+from typing import Annotated, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from neural_recommendation.applications.services.recommendation_dto_mapper import RecommendationDtoMapper
-from neural_recommendation.domain.ports.services.recommendation_service_port import RecommendationServicePort
+from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
+    RecommendationApplicationServicePort,
+)
 from neural_recommendation.infrastructure.config.dependencies import get_recommendation_service
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
@@ -70,7 +72,7 @@ class ExplanationResponse(BaseModel):
 @router.post("/training-user", response_model=RecommendationResultResponse)
 async def get_recommendations_for_training_user(
     request: RecommendationRequest,
-    recommendation_service: Annotated[RecommendationServicePort, Depends(get_recommendation_service)],
+    recommendation_service: Annotated[RecommendationApplicationServicePort, Depends(get_recommendation_service)],
 ):
     """Generate recommendations for an existing user from the training dataaset"""
 
@@ -94,7 +96,7 @@ async def get_recommendations_for_training_user(
 @router.post("/cold-start", response_model=RecommendationResultResponse)
 async def get_recommendations_cold_start(
     request: NewUserRecommendationRequest,
-    recommendation_service: Annotated[RecommendationServicePort, Depends(get_recommendation_service)],
+    recommendation_service: Annotated[RecommendationApplicationServicePort, Depends(get_recommendation_service)],
 ):
     """Generate recommendations for a new user (cold-start)"""
     try:

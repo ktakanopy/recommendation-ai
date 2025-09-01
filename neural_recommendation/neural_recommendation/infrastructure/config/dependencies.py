@@ -12,7 +12,9 @@ from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
-from neural_recommendation.domain.ports.services.recommendation_service_port import RecommendationServicePort
+from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
+    RecommendationApplicationServicePort,
+)
 from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
     ModelInferenceManagerAdapter,
 )
@@ -71,5 +73,5 @@ def get_model_inference_repository(
 def get_recommendation_service(
     model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)],
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
-) -> RecommendationServicePort:
+) -> RecommendationApplicationServicePort:
     return RecommendationApplicationService(model_repository, user_repository)

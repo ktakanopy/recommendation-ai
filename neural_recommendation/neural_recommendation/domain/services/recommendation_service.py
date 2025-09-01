@@ -118,10 +118,10 @@ class RecommendationService:
             recommendations = []
             for i, (movie_id, movie_title, score) in enumerate(cold_start_results):
                 recommendation = Recommendation(
-                    movie_title=movie_title,
+                    movie_id=movie_id,
+                    title=movie_title,
                     similarity_score=float(score),
                     genres="Unknown",  # Could be enhanced with actual genres
-                    rank=i + 1
                 )
                 recommendations.append(recommendation)
             
@@ -221,10 +221,10 @@ class RecommendationService:
         recommendations = []
         for i, (title, movie_id, probability) in enumerate(movie_probability_pairs[:num_recommendations]):
             recommendation = Recommendation(
-                movie_title=title,
+                movie_id=movie_id,
+                title=title,
                 similarity_score=float(probability),
                 genres="Unknown",  # Could be enhanced to get actual genres
-                rank=i + 1,
             )
             recommendations.append(recommendation)
 

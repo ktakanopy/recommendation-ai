@@ -40,8 +40,8 @@ class MLModelSettings(BaseSettings):
     train_split: float = 0.6
     val_split: float = 0.2
     test_split: float = 0.2
-    
+
     # NCF-specific settings
-    model_type: str = "ncf"  # "ncf" or "two_tower" 
+    model_type: str = "ncf"  # "ncf" or "two_tower"
     user_feature_dim: int | None = None
     movie_feature_dim: int | None = None
