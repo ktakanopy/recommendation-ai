@@ -133,13 +133,7 @@ class RecommendationService:
             
         except Exception as e:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
-            # Fallback to regular recommendation approach
-            return self.generate_recommendations_for_training_user(
-                user_id=str(user.id),
-                user_age=float(user.age or 25),
-                gender=user.gender or "M",
-                num_recommendations=num_recommendations
-            )
+            raise e
 
     def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
         """Get diverse movies for new user onboarding"""

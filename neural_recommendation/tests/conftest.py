@@ -242,6 +242,8 @@ def mock_candidate_generator():
     """Mock candidate generator for recommendation testing"""
     generator = Mock()
     generator.generate_hybrid_candidates = Mock(return_value=[1, 2, 3])
+    generator.generate_popularity_candidates = Mock(return_value=[1, 2, 5])
+    generator.generate_content_candidates = Mock(return_value=[1, 3, 4])
     generator.user_interacted_items = {1: [101, 102], 2: [103, 104]}
     generator.movie_to_genres = {1: ["Action"], 2: ["Comedy"], 3: ["Drama"]}
     generator.get_genres_from_movies = Mock(return_value={"Action": 2, "Comedy": 1})

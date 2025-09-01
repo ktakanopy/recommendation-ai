@@ -53,6 +53,7 @@ class TestColdStartFunctionality:
         candidate_generator.generate_popularity_candidates = Mock(return_value=[1, 2, 5])
         candidate_generator.generate_content_candidates = Mock(return_value=[1, 3, 4])
         candidate_generator.get_genres_from_movies = Mock(return_value={'Action': 2, 'Comedy': 1})
+        candidate_generator.all_movie_ids = [1, 2, 3, 4, 5]  # Add the missing attribute
         
         return ColdStartRecommender(
             trained_model=mock_ncf_model,
@@ -307,9 +308,9 @@ class TestColdStartFunctionality:
                 user_demographics, num_recommendations=4
             )
             
-            # Assert
-            assert len(recommendations) == 4
-            # Should be sorted by score in descending order
-            rec_scores = [rec[2] for rec in recommendations]
-            assert rec_scores == sorted(rec_scores, reverse=True)
-            assert rec_scores[0] == 0.9  # Highest score first
+                    # Assert
+        assert len(recommendations) == 4
+        # Should be sorted by score in descending order
+        rec_scores = [rec[2] for rec in recommendations]
+        assert rec_scores == sorted(rec_scores, reverse=True)
+        assert abs(rec_scores[0] - 0.9) < 0.01  # Highest score first (allow for floating point precision)

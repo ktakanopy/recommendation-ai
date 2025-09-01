@@ -90,7 +90,7 @@ async def get_recommendations_for_training_user(
         return RecommendationResultResponse(**response_dict)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating training user recommendations: {str(e)}")
 
 
 @router.post("/cold-start", response_model=RecommendationResultResponse)
@@ -100,7 +100,7 @@ async def get_recommendations_cold_start(
 ):
     """Generate recommendations for a new user (cold-start)"""
     try:
-        result = recommendation_service.generate_recommendations_cold_start(
+        result = await recommendation_service.generate_recommendations_cold_start(
             user_id=request.user_id,
             num_recommendations=request.num_recommendations,
         )
@@ -111,7 +111,7 @@ async def get_recommendations_cold_start(
         return RecommendationResultResponse(**response_dict)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating cold start recommendations: {str(e)}")
 
 
 @router.get("/health")

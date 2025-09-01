@@ -10,16 +10,5 @@ services:
     ports:
       - "5433:5432"
 
-  neural_recommendation_app:
-    entrypoint: ./entrypoint.sh
-    image: neural_recommendation_app
-    build: .
-    ports:
-      - "8000:8000"
-    depends_on:
-      - neural_recommendation_database
-    environment:
-      DATABASE_URL: postgresql+psycopg://app_user:app_password@neural_recommendation_database:5432/app_db
-
 volumes:
   pgdata:
