@@ -3,7 +3,6 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-import pytest_asyncio
 
 from neural_recommendation.applications.services.recommendation_application_service import (
     RecommendationApplicationService,
@@ -240,5 +239,6 @@ class TestRecommendationApplicationService:
         mock_domain_service.generate_recommendations_cold_start.assert_called_once_with(
             user=user_without_ratings, num_recommendations=10
         )
+
+
 # Import asyncio at the end to avoid circular import issues
-import asyncio

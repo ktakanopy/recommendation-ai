@@ -1,12 +1,10 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import torch
-import numpy as np
-import torch.nn.functional as F
 
-from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
 from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import ColdStartRecommender
+from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
 from neural_recommendation.domain.models.user import User
@@ -28,20 +26,20 @@ class RecommendationService:
         self.all_movie_titles = movie_mappings.get("all_movie_titles", [])
         # Movie ID to title mapping for quick lookup
         self.movie_id_to_title = {v: k for k, v in self.title_to_idx.items()}
-        
+
         # Initialize cold start components
         self.candidate_generator = CandidateGenerator(
             train_ratings=None,  # Could be loaded from data if available
-            movies=None,         # Could be loaded from data if available
-            all_movie_ids=list(self.title_to_idx.values())
+            movies=None,  # Could be loaded from data if available
+            all_movie_ids=list(self.title_to_idx.values()),
         )
-        
+
         self.cold_start_recommender = ColdStartRecommender(
             trained_model=model,
             feature_processor=feature_service,
             candidate_generator=self.candidate_generator,
             movies_df=None,  # Could be loaded from data if available
-            liked_threshold=4.0
+            liked_threshold=4.0,
         )
 
     def generate_recommendations_for_training_user(
@@ -92,28 +90,22 @@ class RecommendationService:
     ) -> RecommendationResult:
         """Generate recommendations for a new user using cold start approach"""
         logger.info(f"Generating cold start recommendations for user: {user.username} (ID: {user.id})")
-        
+
         # Prepare user demographics from User object
-        user_demographics = {
-            'gender': user.gender or "M",
-            'age': user.age or 25,
-            'occupation': user.occupation or 1
-        }
-        
+        user_demographics = {"gender": user.gender or "M", "age": user.age or 25, "occupation": user.occupation or 1}
+
         # Convert user ratings to tuples for cold start recommender
         user_ratings = None
         if user.ratings:
             user_ratings = [(rating.movie_id, rating.rating) for rating in user.ratings]
             logger.info(f"User has {len(user_ratings)} existing ratings")
-        
+
         # Use cold start recommender
         try:
             cold_start_results = self.cold_start_recommender.recommend_for_new_user(
-                user_demographics=user_demographics,
-                user_ratings=user_ratings,
-                num_recommendations=num_recommendations
+                user_demographics=user_demographics, user_ratings=user_ratings, num_recommendations=num_recommendations
             )
-            
+
             # Convert to Recommendation objects
             recommendations = []
             for i, (movie_id, movie_title, score) in enumerate(cold_start_results):
@@ -124,13 +116,11 @@ class RecommendationService:
                     genres="Unknown",  # Could be enhanced with actual genres
                 )
                 recommendations.append(recommendation)
-            
+
             return RecommendationResult(
-                user_id=str(user.id),
-                recommendations=recommendations,
-                total_available_movies=len(self.all_movie_titles)
+                user_id=str(user.id), recommendations=recommendations, total_available_movies=len(self.all_movie_titles)
             )
-            
+
         except Exception as e:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
             raise e
@@ -138,21 +128,17 @@ class RecommendationService:
     def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
         """Get diverse movies for new user onboarding"""
         logger.info(f"Getting {num_movies} onboarding movies")
-        
+
         try:
             onboarding_results = self.cold_start_recommender.get_onboarding_movies(num_movies)
-            
+
             # Convert to dictionary format
             movies = []
             for movie_id, title, genres in onboarding_results:
-                movies.append({
-                    "movie_id": movie_id,
-                    "title": title,
-                    "genres": genres
-                })
-            
+                movies.append({"movie_id": movie_id, "title": title, "genres": genres})
+
             return movies
-            
+
         except Exception as e:
             logger.error(f"Error getting onboarding movies: {str(e)}")
             # Fallback to simple movie list
@@ -161,7 +147,7 @@ class RecommendationService:
                 {
                     "movie_id": movie_id,
                     "title": self.movie_id_to_title.get(movie_id, f"Movie_{movie_id}"),
-                    "genres": "Unknown"
+                    "genres": "Unknown",
                 }
                 for movie_id in movie_ids
             ]

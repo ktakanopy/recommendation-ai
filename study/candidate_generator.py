@@ -1,5 +1,7 @@
 from functools import lru_cache
 from collections import defaultdict
+import pickle
+import os
 import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
@@ -339,3 +341,42 @@ class CandidateGenerator:
             f"Precomputed validation candidates for {len(validation_candidates)} users"
         )
         return validation_candidates
+
+    def save(self, filepath):
+        data = {
+            "version": 1,
+            "all_movieIds": self.all_movieIds,
+            "user_interacted_items": self.user_interacted_items,
+            "popular_items": getattr(self, "popular_items", None),
+            "movie_to_genres": getattr(self, "movie_to_genres", None),
+            "user_similarity": getattr(self, "user_similarity", None),
+            "user_to_idx": getattr(self, "user_to_idx", None),
+            "idx_to_user": getattr(self, "idx_to_user", None),
+            "user_genre_profiles": getattr(self, "user_genre_profiles", None),
+            "all_genres": getattr(self, "all_genres", None),
+            "genre_to_idx": getattr(self, "genre_to_idx", None),
+        }
+        directory = os.path.dirname(filepath)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+        with open(filepath, "wb") as f:
+            pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    @classmethod
+    def load(cls, filepath):
+        with open(filepath, "rb") as f:
+            data = pickle.load(f)
+        obj = cls.__new__(cls)
+        obj.train_ratings = None
+        obj.movies = None
+        obj.all_movieIds = data.get("all_movieIds")
+        obj.user_interacted_items = data.get("user_interacted_items")
+        obj.popular_items = data.get("popular_items")
+        obj.movie_to_genres = data.get("movie_to_genres")
+        obj.user_similarity = data.get("user_similarity")
+        obj.user_to_idx = data.get("user_to_idx")
+        obj.idx_to_user = data.get("idx_to_user")
+        obj.user_genre_profiles = data.get("user_genre_profiles")
+        obj.all_genres = data.get("all_genres")
+        obj.genre_to_idx = data.get("genre_to_idx")
+        return obj

@@ -69,30 +69,6 @@ class ExplanationResponse(BaseModel):
     genres: str
 
 
-@router.post("/training-user", response_model=RecommendationResultResponse)
-async def get_recommendations_for_training_user(
-    request: RecommendationRequest,
-    recommendation_service: Annotated[RecommendationApplicationServicePort, Depends(get_recommendation_service)],
-):
-    """Generate recommendations for an existing user from the training dataaset"""
-
-    try:
-        result = recommendation_service.generate_recommendations_for_training_user(
-            user_id=request.user_id,
-            user_age=request.user_age,
-            gender=request.gender,
-            num_recommendations=request.num_recommendations,
-        )
-
-        # Convert domain model to response model using mapper
-        response_dict = RecommendationDtoMapper.to_recommendation_result_response_dict(result)
-
-        return RecommendationResultResponse(**response_dict)
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating training user recommendations: {str(e)}")
-
-
 @router.post("/cold-start", response_model=RecommendationResultResponse)
 async def get_recommendations_cold_start(
     request: NewUserRecommendationRequest,

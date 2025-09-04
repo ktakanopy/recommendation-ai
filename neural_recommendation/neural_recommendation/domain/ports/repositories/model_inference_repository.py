@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
+import pandas as pd
+
 from neural_recommendation.applications.interfaces.dtos.feature_info_dto import FeatureInfoDto
 from neural_recommendation.domain.models.deep_learning.two_tower_model import TwoTowerModel
 

@@ -1,13 +1,19 @@
+import os
+from re import I
+from typing import Dict, Optional
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
-import matplotlib.pyplot as plt
-import os
-from typing import Dict, Optional
-
-from feature_processor import FeatureProcessor
+from movie_dataset import MovieLensDataset
 from ncf import NCF
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import (
+    NCFFeatureProcessor as FeatureProcessor,
+)
 
 
 class NCFTrainer:
@@ -15,6 +21,7 @@ class NCFTrainer:
         self,
         model: NCF,
         train_ratings: pd.DataFrame,
+        train_candidates: Dict,
         validation_ratings: pd.DataFrame,
         validation_candidates: Dict,
         feature_processor: FeatureProcessor,
@@ -23,10 +30,12 @@ class NCFTrainer:
         min_delta: float = 0.001,
         early_stop_metric: str = "mean_rank",
         scheduler_type: str = "ReduceLROnPlateau",
+        num_negatives: int = 4,
         scheduler_params: Dict = None,
     ):
         self.model = model
         self.train_ratings = train_ratings
+        self.train_candidates = train_candidates
         self.validation_ratings = validation_ratings
         self.validation_candidates = validation_candidates
         self.feature_processor = feature_processor
@@ -34,6 +43,7 @@ class NCFTrainer:
         self.patience = patience
         self.min_delta = min_delta
         self.early_stop_metric = early_stop_metric
+        self.num_negatives = num_negatives
 
         self.optimizer = torch.optim.Adam(model.parameters())
 
@@ -82,61 +92,26 @@ class NCFTrainer:
 
         return total_loss / num_batches
 
-    def compute_validation_loss(self, test_ratings, total_users_to_test=None):
-        """
-        Compute validation loss for a subset of validation data
-
-        Args:
-            test_ratings: DataFrame with validation ratings
-            precomputed_candidates: Dict of {user_id: [candidate_items]}
-            total_users_to_test: Number of users to test
-        """
+    def compute_validation_loss(self):
         self.model.eval()
-        total_loss = 0
-        num_cases = 0
-
-        test_user_item_set = list(
-            set(zip(test_ratings["user_id"], test_ratings["movie_id"]))
-        )
-
-        try:
-            for u, i in tqdm(
-                test_user_item_set[:total_users_to_test],
-                desc="Computing val loss",
-                leave=False,
-            ):
-                if u not in self.model.feature_processor.user_features_cache:
-                    continue
-
-                if i not in self.model.feature_processor.movie_features_cache:
-                    continue
-
-                user_feat = (
-                    self.model.feature_processor.get_user_features(u)
-                    .unsqueeze(0)
-                    .to(self.device)
-                )
-                movie_feat = (
-                    self.model.feature_processor.get_movie_features(i)
-                    .unsqueeze(0)
-                    .to(self.device)
-                )
-
-                with torch.no_grad():
-                    loss = self.model.compute_loss(
-                        (user_feat, movie_feat, torch.ones(1).to(self.device))
-                    )
-                    total_loss += loss.item()
-                    num_cases += 1
-
-            if num_cases == 0:
-                return 0.0
-
-            return total_loss / num_cases
-
-        except Exception as e:
-            print(f"Error computing validation loss: {e}")
-            return 0.0
+        dataloader = self.get_val_dataloader(batch_size=512, num_workers=4)
+        total_loss = 0.0
+        batches = 0
+        with torch.no_grad():
+            for batch in dataloader:
+                if len(batch) == 5:
+                    _, _, user_features, movie_features, labels = batch
+                else:
+                    user_features, movie_features, labels = batch
+                    if labels is None:
+                        labels = torch.ones(user_features.size(0), dtype=torch.long)
+                user_features = user_features.to(self.device)
+                movie_features = movie_features.to(self.device)
+                labels = labels.to(self.device)
+                loss = self.model.compute_loss((user_features, movie_features, labels))
+                total_loss += float(loss.item())
+                batches += 1
+        return total_loss / max(batches, 1)
 
     def validate_model_logic(
         self, test_ratings, precomputed_candidates, total_users_to_test=None, k=10
@@ -247,15 +222,75 @@ class NCFTrainer:
             print(f"Error during validation: {e}")
             return 0.0, 0.0, 0.0
 
-    def validate_model(
-        self, test_ratings, precomputed_candidates, k=10
-    ):
+    def evaluate_validation(self, k=10):
         self.model.eval()
+        dataloader = self.get_val_dataloader(batch_size=512, num_workers=4)
+        total_loss = 0.0
+        batches = 0
+        hits = []
+        reciprocal_ranks = []
+        ranks = []
+        gt_pairs = set(zip(self.validation_ratings["user_id"], self.validation_ratings["movie_id"]))
+        per_user_scores = {}
+        per_user_movies = {}
         with torch.no_grad():
-            hit_ratio, mrr, mean_rank = self.validate_model_logic(
-                test_ratings, precomputed_candidates, k
-            )
-        return hit_ratio, mrr, mean_rank
+            for batch in dataloader:
+                if len(batch) == 5:
+                    user_ids, movie_ids, user_features, movie_features, labels = batch
+                    if torch.is_tensor(user_ids):
+                        user_ids = user_ids.tolist()
+                    if torch.is_tensor(movie_ids):
+                        movie_ids = movie_ids.tolist()
+                else:
+                    user_features, movie_features, labels = batch
+                    user_ids = None
+                    movie_ids = None
+
+                user_features = user_features.to(self.device)
+                movie_features = movie_features.to(self.device)
+                if labels is None:
+                    labels = torch.ones(user_features.size(0), dtype=torch.long)
+                labels = labels.to(self.device)
+
+                loss = self.model.compute_loss((user_features, movie_features, labels))
+                total_loss += float(loss.item())
+                batches += 1
+
+                scores = self.model(user_features, movie_features).squeeze().detach()
+
+                if user_ids is None or movie_ids is None:
+                    continue
+
+                for idx, u in enumerate(user_ids):
+                    if u not in per_user_scores:
+                        per_user_scores[u] = []
+                        per_user_movies[u] = []
+                    score_val = scores[idx].item() if torch.is_tensor(scores[idx]) else float(scores[idx])
+                    per_user_scores[u].append(score_val)
+                    per_user_movies[u].append(movie_ids[idx])
+
+        avg_loss = total_loss / max(batches, 1)
+        for u, user_scores in per_user_scores.items():
+            user_movies = per_user_movies[u]
+            true_idx = None
+            for j, mid in enumerate(user_movies):
+                if (u, mid) in gt_pairs:
+                    true_idx = j
+                    break
+            if true_idx is None:
+                continue
+            order = sorted(range(len(user_scores)), key=lambda x: user_scores[x], reverse=True)
+            rank = order.index(true_idx) + 1
+            ranks.append(rank)
+            reciprocal_ranks.append(1.0 / rank)
+            hits.append(1 if rank <= k else 0)
+
+        if len(hits) == 0:
+            return avg_loss, 0.0, 0.0, 0.0
+        hit_ratio = sum(hits) / len(hits)
+        mrr = sum(reciprocal_ranks) / len(reciprocal_ranks)
+        mean_rank = sum(ranks) / len(ranks)
+        return avg_loss, hit_ratio, mrr, mean_rank
 
     def check_early_stopping(self, current_metric: float) -> bool:
         if self.early_stop_metric == "mean_rank":
@@ -275,31 +310,46 @@ class NCFTrainer:
                 return True
             return False
 
+    def get_train_dataloader(self, batch_size=512, num_workers=4):
+        """Get DataLoader with optimized negative sampling"""
+        dataset = MovieLensDataset(
+            self.train_ratings,
+            self.train_candidates,
+            self.feature_processor,
+            num_negatives=self.num_negatives,
+        )
+        return DataLoader(
+            dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
+        )
+
+    def get_val_dataloader(self, batch_size=512, num_workers=4):
+        """Get DataLoader with optimized negative sampling"""
+        dataset = MovieLensDataset(
+            self.validation_ratings,
+            self.validation_candidates,
+            self.feature_processor,
+            num_negatives=0,
+            return_ids=True,
+            all_negatives=True,
+        )
+        return DataLoader(
+            dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
+        )
+
     def train(
         self,
         num_epochs: int,
         batch_size: int = 512,
         num_workers: int = 4,
         k: int = 10,
-        total_users_to_test: int = None,
         verbose: bool = True,
     ) -> Dict:
-        dataloader = self.model.get_dataloader(
-            batch_size=batch_size, num_workers=num_workers
-        )
+        dataloader = self.get_train_dataloader(batch_size=batch_size, num_workers=num_workers)
 
         for epoch in tqdm(range(num_epochs), desc="Training"):
             train_loss = self.train_epoch(dataloader)
 
-            val_loss = self.compute_validation_loss(
-                self.validation_ratings, total_users_to_test=total_users_to_test
-            )
-
-            hit_ratio, mrr, mean_rank = self.validate_model(
-                self.validation_ratings,
-                self.validation_candidates,
-                k=k,
-            )
+            val_loss, hit_ratio, mrr, mean_rank = self.evaluate_validation(k=k)
 
             self.train_losses.append(train_loss)
             self.val_losses.append(val_loss)

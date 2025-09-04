@@ -73,5 +73,6 @@ def get_model_inference_repository(
 def get_recommendation_service(
     model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)],
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+    ml_settings: Annotated[MLModelSettings, Depends(get_ml_settings)],
 ) -> RecommendationApplicationServicePort:
-    return RecommendationApplicationService(model_repository, user_repository)
+    return RecommendationApplicationService(ml_settings, model_repository, user_repository)

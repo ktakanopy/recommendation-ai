@@ -255,16 +255,16 @@ def mock_candidate_generator():
 def mock_cold_start_recommender():
     """Mock cold start recommender for testing"""
     recommender = Mock()
-    recommender.recommend_for_new_user = Mock(return_value=[
-        (1, "Movie A", 0.9),
-        (2, "Movie B", 0.8),
-        (3, "Movie C", 0.7)
-    ])
-    recommender.get_onboarding_movies = Mock(return_value=[
-        (1, "Popular Movie 1", "Action|Adventure"),
-        (2, "Popular Movie 2", "Comedy"),
-        (3, "Popular Movie 3", "Drama")
-    ])
+    recommender.recommend_for_new_user = Mock(
+        return_value=[(1, "Movie A", 0.9), (2, "Movie B", 0.8), (3, "Movie C", 0.7)]
+    )
+    recommender.get_onboarding_movies = Mock(
+        return_value=[
+            (1, "Popular Movie 1", "Action|Adventure"),
+            (2, "Popular Movie 2", "Comedy"),
+            (3, "Popular Movie 3", "Drama"),
+        ]
+    )
     return recommender
 
 
@@ -272,21 +272,9 @@ def mock_cold_start_recommender():
 def sample_movie_mappings():
     """Sample movie mappings for testing"""
     return {
-        "title_to_idx": {
-            "Movie A": 1,
-            "Movie B": 2,
-            "Movie C": 3,
-            "Action Movie": 4,
-            "Comedy Movie": 5
-        },
-        "idx_to_title": {
-            1: "Movie A",
-            2: "Movie B", 
-            3: "Movie C",
-            4: "Action Movie",
-            5: "Comedy Movie"
-        },
-        "all_movie_titles": ["Movie A", "Movie B", "Movie C", "Action Movie", "Comedy Movie"]
+        "title_to_idx": {"Movie A": 1, "Movie B": 2, "Movie C": 3, "Action Movie": 4, "Comedy Movie": 5},
+        "idx_to_title": {1: "Movie A", 2: "Movie B", 3: "Movie C", 4: "Action Movie", 5: "Comedy Movie"},
+        "all_movie_titles": ["Movie A", "Movie B", "Movie C", "Action Movie", "Comedy Movie"],
     }
 
 
@@ -295,26 +283,15 @@ def sample_user_with_ratings():
     """Sample user with ratings for testing"""
     import uuid
     from datetime import datetime
-    from neural_recommendation.domain.models.user import User
+
     from neural_recommendation.domain.models.rating import Rating
-    
+    from neural_recommendation.domain.models.user import User
+
     ratings = [
-        Rating(
-            id=uuid.uuid4(),
-            user_id=uuid.uuid4(),
-            movie_id=uuid.uuid4(),
-            rating=4.5,
-            timestamp=datetime.now()
-        ),
-        Rating(
-            id=uuid.uuid4(),
-            user_id=uuid.uuid4(),
-            movie_id=uuid.uuid4(),
-            rating=3.0,
-            timestamp=datetime.now()
-        )
+        Rating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=uuid.uuid4(), rating=4.5, timestamp=datetime.now()),
+        Rating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=uuid.uuid4(), rating=3.0, timestamp=datetime.now()),
     ]
-    
+
     return User(
         id=1,
         username="testuser",
@@ -323,7 +300,7 @@ def sample_user_with_ratings():
         age=25,
         gender="M",
         occupation=1,
-        ratings=ratings
+        ratings=ratings,
     )
 
 
@@ -331,7 +308,7 @@ def sample_user_with_ratings():
 def sample_user_without_ratings():
     """Sample user without ratings for testing"""
     from neural_recommendation.domain.models.user import User
-    
+
     return User(
         id=2,
         username="newuser",
@@ -340,5 +317,5 @@ def sample_user_without_ratings():
         age=30,
         gender="F",
         occupation=2,
-        ratings=None
+        ratings=None,
     )

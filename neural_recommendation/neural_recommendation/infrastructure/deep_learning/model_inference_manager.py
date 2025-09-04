@@ -2,6 +2,7 @@ import os
 import pickle
 from typing import Tuple
 
+import pandas as pd
 import torch
 
 from neural_recommendation.applications.interfaces.dtos.feature_info_dto import FeatureInfoDto
@@ -14,12 +15,18 @@ logger = Logger.get_logger(__name__)
 class ModelInferenceManager:
     """Infrastructure service for managing NCF model inference"""
 
-    def __init__(self, models_dir: str = "models", device: str = "cpu"):
+    def __init__(self, models_dir: str = "models",  device: str = "cpu", data_dir: str = "data"):
         self.models_dir = models_dir
+        self.data_dir = data_dir
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = None
         self._feature_info = None
 
+    def load_movie_data(self, movie_filename: str) -> pd.DataFrame:
+        """Load movie data from file"""
+        movie_path = os.path.join(self.data_dir, movie_filename)
+        return pd.read_csv(movie_path)
+ 
     def load_model_and_features(
         self,
         model_filename: str = "ncf_model.pth",
@@ -45,10 +52,6 @@ class ModelInferenceManager:
         """Load preprocessed feature information"""
         features_path = os.path.join("data/processed_data", features_filename)
 
-        if not os.path.exists(features_path):
-            logger.warning(f"Features file not found: {features_path}, creating dummy feature info")
-            return self._create_dummy_feature_info()
-
         logger.info(f"Loading feature info from: {features_path}")
 
         try:
@@ -68,7 +71,7 @@ class ModelInferenceManager:
 
         except Exception as e:
             logger.warning(f"Error loading feature info: {str(e)}, creating dummy feature info")
-            return self._create_dummy_feature_info()
+            raise e
 
     def _load_ncf_model(self, model_filename: str) -> NCFModel:
         """Load trained NCF model"""
@@ -90,40 +93,8 @@ class ModelInferenceManager:
 
         except Exception as e:
             logger.warning(f"Failed to load NCF model: {str(e)}, creating dummy model for testing")
-            return self._create_dummy_ncf_model()
+            raise e
 
-    def _create_dummy_feature_info(self) -> FeatureInfoDto:
-        """Create dummy feature info for testing purposes"""
-        logger.info("Creating dummy feature info for NCF testing")
-
-        # Create minimal sentence embeddings structure
-        class DummySentenceEmbeddings:
-            def __init__(self):
-                self.title_to_idx = {f"Movie_{i}": i for i in range(100)}
-                self.embedding_dim = 384  # Standard sentence-transformer dimension
-                self.embedding_matrix = torch.randn(100, 384)
-
-        # Create dummy feature info
-        dummy_feature_info = FeatureInfoDto(
-            unique_user_ids=[f"user_{i}" for i in range(100)],
-            sentence_embeddings=DummySentenceEmbeddings(),
-            additional_data={},
-        )
-        return dummy_feature_info
-
-    def _create_dummy_ncf_model(self) -> NCFModel:
-        """Create dummy NCF model for testing purposes"""
-        logger.info("Creating dummy NCF model for testing")
-
-        # Use typical dimensions for MovieLens-like data
-        user_feature_dim = 50  # Typical for age + gender + occupation one-hot encoded
-        movie_feature_dim = 768  # Typical for sentence transformer embeddings (384*2 for title+genre)
-
-        model = NCFModel(user_feature_dim=user_feature_dim, movie_feature_dim=movie_feature_dim, num_negatives=4)
-
-        model.to(self.device)
-        model.eval()
-        return model
 
     def get_device(self) -> torch.device:
         """Get the device being used for inference"""

@@ -1,6 +1,7 @@
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from study import movie_lens_dataset
 
 
 class Settings(BaseSettings):
@@ -24,6 +25,10 @@ class MLModelSettings(BaseSettings):
     sentence_model: str = "all-MiniLM-L6-v2"
     models_dir: str = "models"
     model_name: str = "ncf.pth"
+    processed_data_dir: str = "data/processed_data"
+    data_dir: str = "data/ml-1m"
+    movie_name: str = "movies.dat"
+    candidate_gen_name: str = "candidate_gen.pkl"
     history_name: str = "training_history.json"
     plot_name: str = "training_curves.png"
     retrain: bool = False
