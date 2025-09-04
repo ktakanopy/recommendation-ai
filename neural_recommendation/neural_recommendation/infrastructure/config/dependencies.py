@@ -10,6 +10,7 @@ from neural_recommendation.applications.services.recommendation_application_serv
 from neural_recommendation.domain.models.deep_learning.model_config import ModelConfig
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
+from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
@@ -17,6 +18,9 @@ from neural_recommendation.domain.ports.services.recommendation_application_serv
 )
 from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
     ModelInferenceManagerAdapter,
+)
+from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_movie_repository import (
+    SQLAlchemyMovieRepository,
 )
 from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
     SQLAlchemyUserRepository,
@@ -42,6 +46,10 @@ def get_model_config(ml_settings: Annotated[MLModelSettings, Depends(get_ml_sett
 
 def get_user_repository(session: Annotated[AsyncSession, Depends(get_session)]) -> UserRepository:
     return SQLAlchemyUserRepository(session)
+
+
+def get_movie_repository(session: Annotated[AsyncSession, Depends(get_session)]) -> MovieRepository:
+    return SQLAlchemyMovieRepository(session)
 
 
 def get_auth_service(

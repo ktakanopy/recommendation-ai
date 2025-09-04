@@ -33,7 +33,7 @@ class ColdStartRecommender:
         self.feature_processor = feature_processor
         self.candidate_generator = candidate_generator
         self.movies_df = movies_df
-        self.device = next(trained_model.parameters()).device
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.liked_threshold = liked_threshold
 
     def get_similar_users_neural_embedding(self, user_demographics: Dict[str, Any], top_k: int = 50) -> List[int]:

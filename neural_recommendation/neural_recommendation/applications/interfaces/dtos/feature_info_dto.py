@@ -1,3 +1,4 @@
+import pickle
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
@@ -16,8 +17,7 @@ class FeatureInfoDto:
     age_mean: float
     age_std: float
     sentence_embeddings: SentenceEmbeddingsDto
-    unique_movie_titles: List[str]
-    unique_user_ids: List[str]
+    movies_genres_dict: Dict[str, List[str]]
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "FeatureInfoDto":
@@ -32,8 +32,7 @@ class FeatureInfoDto:
             age_mean=data["age_mean"],
             age_std=data["age_std"],
             sentence_embeddings=sentence_embeddings,
-            unique_movie_titles=data["unique_movie_titles"],
-            unique_user_ids=data["unique_user_ids"],
+            movies_genres_dict=data["movies_genres_dict"],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -45,6 +44,14 @@ class FeatureInfoDto:
                 "embedding_matrix": self.sentence_embeddings.embedding_matrix,
                 "embedding_dim": self.sentence_embeddings.embedding_dim,
             },
-            "unique_movie_titles": self.unique_movie_titles,
-            "unique_user_ids": self.unique_user_ids,
+            "movie_genres_dict": self.movies_genres_dict,
         }
+
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            pickle.dump(self.to_dict(), f)
+
+    @classmethod
+    def load(cls, path: str):
+        with open(path, "rb") as f:
+            return cls.from_dict(pickle.load(f))

@@ -1,3 +1,3 @@
-from .feature_engineering_service import FeatureEngineeringService
+from .recommendation_service import RecommendationService
 
-__all__ = ["FeatureEngineeringService"]
+__all__ = ["RecommendationService"]

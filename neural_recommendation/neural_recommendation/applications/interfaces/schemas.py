@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import List, Optional
 
@@ -19,7 +20,7 @@ class Token(BaseModel):
 class RatingSchema(BaseModel):
     """Schema for rating data"""
 
-    movie_id: str  # Will be converted to UUID
+    movie_id: int  # Will be converted to UUID
     rating: float
     timestamp: Optional[datetime] = None
 
@@ -55,3 +56,24 @@ class UserDB(UserSchema):
 
 class UserList(BaseModel):
     users: list[UserPublic]
+
+
+class MovieSchema(BaseModel):
+    title: str
+    genres: List[str]
+    embedding: Optional[List[float]] = None
+
+
+class MoviePublic(BaseModel):
+    id: uuid.UUID
+    title: str
+    genres: List[str]
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MovieDB(MovieSchema):
+    id: uuid.UUID
+
+
+class MovieList(BaseModel):
+    movies: list[MoviePublic]

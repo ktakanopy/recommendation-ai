@@ -1,7 +1,6 @@
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from study import movie_lens_dataset
 
 
 class Settings(BaseSettings):

@@ -19,7 +19,7 @@ class RecommendationService:
     def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, movie_mappings: Dict[str, Any]):
         self.model = model
         self.feature_service = feature_service
-        self.device = next(model.parameters()).device
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.eval()
         self.title_to_idx = movie_mappings.get("title_to_idx", {})
         self.idx_to_title = movie_mappings.get("idx_to_title", {})
@@ -42,47 +42,6 @@ class RecommendationService:
             liked_threshold=4.0,
         )
 
-    def generate_recommendations_for_training_user(
-        self,
-        user_id: str,
-        user_age: float = 25.0,
-        gender: str = "M",
-        num_recommendations: int = 10,
-        batch_size: int = 100,
-    ) -> RecommendationResult:
-        """Generate recommendations using NCF model"""
-        logger.info(f"Generating recommendations for user {user_id}")
-
-        # Process user demographics to get feature vector
-        user_demographics = {
-            "gender": gender,
-            "age": int(user_age),  # Convert to age category
-            "occupation": 1,  # Default occupation, could be enhanced
-        }
-
-        try:
-            user_features = self.feature_service.process_user_demographics(user_demographics)
-        except Exception as e:
-            logger.error(f"Error processing user demographics: {str(e)}")
-            # Fallback to zero features if processing fails
-            user_features = torch.zeros(self.feature_service.user_feature_dim or 1)
-
-        # Get all available movies
-        available_movie_ids = list(self.title_to_idx.values())
-        available_movie_titles = self.all_movie_titles
-
-        # Calculate interaction probabilities for all movies
-        probabilities = self._calculate_interaction_probabilities(user_features, available_movie_ids, batch_size)
-
-        # Create recommendations from probabilities
-        recommendations = self._create_top_recommendations(
-            available_movie_titles, available_movie_ids, probabilities, num_recommendations
-        )
-
-        return RecommendationResult(
-            user_id=user_id, recommendations=recommendations, total_available_movies=len(available_movie_titles)
-        )
-
     def generate_recommendations_cold_start(
         self,
         user: User,
@@ -92,7 +51,7 @@ class RecommendationService:
         logger.info(f"Generating cold start recommendations for user: {user.username} (ID: {user.id})")
 
         # Prepare user demographics from User object
-        user_demographics = {"gender": user.gender or "M", "age": user.age or 25, "occupation": user.occupation or 1}
+        user_demographics = {"gender": user.gender, "age": user.age, "occupation": user.occupation}
 
         # Convert user ratings to tuples for cold start recommender
         user_ratings = None

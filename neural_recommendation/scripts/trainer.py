@@ -1,5 +1,4 @@
 import os
-from re import I
 from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -51,13 +50,9 @@ class NCFTrainer:
             scheduler_params = {"mode": "min", "factor": 0.5, "patience": 5}
 
         if scheduler_type == "ReduceLROnPlateau":
-            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                self.optimizer, **scheduler_params
-            )
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, **scheduler_params)
         elif scheduler_type == "StepLR":
-            self.scheduler = torch.optim.lr_scheduler.StepLR(
-                self.optimizer, **scheduler_params
-            )
+            self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **scheduler_params)
         else:
             self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                 self.optimizer, mode="min", factor=0.5, patience=5
@@ -113,9 +108,7 @@ class NCFTrainer:
                 batches += 1
         return total_loss / max(batches, 1)
 
-    def validate_model_logic(
-        self, test_ratings, precomputed_candidates, total_users_to_test=None, k=10
-    ):
+    def validate_model_logic(self, test_ratings, precomputed_candidates, total_users_to_test=None, k=10):
         """
         Validation function that works with features instead of IDs
 
@@ -125,9 +118,7 @@ class NCFTrainer:
             total_users_to_test: Number of users to test
             k: Top-k for hit ratio calculation
         """
-        test_user_item_set = list(
-            set(zip(test_ratings["user_id"], test_ratings["movie_id"]))
-        )
+        test_user_item_set = list(set(zip(test_ratings["user_id"], test_ratings["movie_id"])))
         hits = []
         ranks = []
         skipped_cases = 0
@@ -136,9 +127,7 @@ class NCFTrainer:
         try:
             # Randomly sample users for validation
             if total_users_to_test and len(test_user_item_set) > total_users_to_test:
-                sampled_indices = np.random.choice(
-                    len(test_user_item_set), size=total_users_to_test, replace=False
-                )
+                sampled_indices = np.random.choice(len(test_user_item_set), size=total_users_to_test, replace=False)
                 sampled_user_item_set = [test_user_item_set[i] for i in sampled_indices]
             else:
                 sampled_user_item_set = test_user_item_set
@@ -177,19 +166,11 @@ class NCFTrainer:
                     skipped_cases += 1
                     continue
 
-                user_feat = (
-                    self.model.feature_processor.get_user_features(u)
-                    .unsqueeze(0)
-                    .to(self.device)
-                )
+                user_feat = self.model.feature_processor.get_user_features(u).unsqueeze(0).to(self.device)
 
                 predicted_scores = []
                 for movie_id in valid_candidates:
-                    movie_feat = (
-                        self.model.feature_processor.get_movie_features(movie_id)
-                        .unsqueeze(0)
-                        .to(self.device)
-                    )
+                    movie_feat = self.model.feature_processor.get_movie_features(movie_id).unsqueeze(0).to(self.device)
                     with torch.no_grad():
                         score = self.model(user_feat, movie_feat).item()
                     predicted_scores.append(score)
@@ -318,9 +299,7 @@ class NCFTrainer:
             self.feature_processor,
             num_negatives=self.num_negatives,
         )
-        return DataLoader(
-            dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
-        )
+        return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
 
     def get_val_dataloader(self, batch_size=512, num_workers=4):
         """Get DataLoader with optimized negative sampling"""
@@ -332,9 +311,7 @@ class NCFTrainer:
             return_ids=True,
             all_negatives=True,
         )
-        return DataLoader(
-            dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
-        )
+        return DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
     def train(
         self,
@@ -387,12 +364,8 @@ class NCFTrainer:
 
         epochs = range(1, len(self.train_losses) + 1)
 
-        axes[0, 0].plot(
-            epochs, self.train_losses, "b-", label="Training Loss", linewidth=2
-        )
-        axes[0, 0].plot(
-            epochs, self.val_losses, "r--", label="Validation Loss", linewidth=2
-        )
+        axes[0, 0].plot(epochs, self.train_losses, "b-", label="Training Loss", linewidth=2)
+        axes[0, 0].plot(epochs, self.val_losses, "r--", label="Validation Loss", linewidth=2)
         axes[0, 0].set_title("Training vs Validation Loss")
         axes[0, 0].set_xlabel("Epoch")
         axes[0, 0].set_ylabel("Loss")
@@ -419,9 +392,7 @@ class NCFTrainer:
         axes[1, 0].legend()
         axes[1, 0].grid(True)
 
-        axes[1, 1].plot(
-            epochs, self.val_metrics["mean_rank"], "m-", label="Mean Rank", linewidth=2
-        )
+        axes[1, 1].plot(epochs, self.val_metrics["mean_rank"], "m-", label="Mean Rank", linewidth=2)
         axes[1, 1].set_title("Mean Rank")
         axes[1, 1].set_xlabel("Epoch")
         axes[1, 1].set_ylabel("Mean Rank")

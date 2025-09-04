@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch import nn
 
@@ -64,9 +63,7 @@ class NCFModel(nn.Module):
         user_processed = nn.ReLU()(self.user_bn2(self.user_fc2(user_x)))
 
         # Process movie features
-        movie_x = self.dropout(
-            nn.ReLU()(self.movie_bn1(self.movie_fc1(movie_features)))
-        )
+        movie_x = self.dropout(nn.ReLU()(self.movie_bn1(self.movie_fc1(movie_features))))
         movie_x = self.dropout(nn.ReLU()(self.movie_bn2(self.movie_fc2(movie_x))))
         movie_processed = nn.ReLU()(self.movie_bn3(self.movie_fc3(movie_x)))
 
@@ -118,9 +115,7 @@ class NCFModel(nn.Module):
 
             # Verify model compatibility
             if checkpoint.get("model_type") != "NCF":
-                print(
-                    f"Warning: Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}"
-                )
+                print(f"Warning: Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}")
 
             if checkpoint.get("user_feature_dim") != self.user_feature_dim:
                 raise ValueError(
@@ -155,9 +150,7 @@ class NCFModel(nn.Module):
             raise RuntimeError(f"Error loading model weights: {str(e)}")
 
     @classmethod
-    def load_model(
-        cls, filepath
-    ):
+    def load_model(cls, filepath):
         """
         Class method to load a complete model from saved weights
 

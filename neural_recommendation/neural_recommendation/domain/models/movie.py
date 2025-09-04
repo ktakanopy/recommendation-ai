@@ -8,4 +8,3 @@ class Movie:
     id: uuid.UUID
     title: str
     genres: List[str] = field(default_factory=list)
-    embedding: List[float] = field(default_factory=list)

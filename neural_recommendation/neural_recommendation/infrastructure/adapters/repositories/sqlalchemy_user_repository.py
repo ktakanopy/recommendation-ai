@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from neural_recommendation.domain.models.rating import Rating
@@ -34,6 +35,9 @@ class SQLAlchemyUserRepository(UserRepository):
             username=sql_user.username,
             email=sql_user.email,
             password_hash=sql_user.password,
+            age=sql_user.age,
+            gender=sql_user.gender,
+            occupation=sql_user.occupation,
             id=sql_user.id,
             created_at=sql_user.created_at,
             ratings=domain_ratings,
@@ -45,6 +49,9 @@ class SQLAlchemyUserRepository(UserRepository):
             username=domain_user.username,
             email=domain_user.email,
             password=domain_user.password_hash,
+            age=domain_user.age,
+            gender=domain_user.gender,
+            occupation=domain_user.occupation,
         )
 
     async def create(self, user: DomainUser) -> DomainUser:
@@ -53,6 +60,9 @@ class SQLAlchemyUserRepository(UserRepository):
             username=user.username,
             email=user.email,
             password=user.password_hash,
+            age=user.age,
+            gender=user.gender,
+            occupation=user.occupation,
         )
         self.session.add(sql_user)
         await self.session.commit()
@@ -74,8 +84,13 @@ class SQLAlchemyUserRepository(UserRepository):
         await self.session.commit()
 
     async def get_by_id(self, user_id: int) -> Optional[DomainUser]:
-        sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))
-        return self._to_domain(sql_user) if sql_user else None
+        query = (
+            select(SQLUser)
+            .options(selectinload(SQLUser.ratings))
+            .where(SQLUser.id == user_id)
+        )
+        sql_user = await self.session.scalar(query)
+        return self._to_domain(sql_user, include_ratings=True) if sql_user else None
 
     async def get_by_email(self, email: str) -> Optional[DomainUser]:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.email == email))
@@ -123,10 +138,13 @@ class SQLAlchemyUserRepository(UserRepository):
         sql_user.username = user.username
         sql_user.email = user.email
         sql_user.password = user.password_hash
+        sql_user.age = user.age
+        sql_user.gender = user.gender
+        sql_user.occupation = user.occupation
 
         await self.session.commit()
         await self.session.refresh(sql_user)
-        return self._to_domain(sql_user)
+        return self._to_domain(sql_user, include_ratings=True)
 
     async def delete(self, user_id: int) -> bool:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))

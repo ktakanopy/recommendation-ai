@@ -20,6 +20,7 @@ from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+
 def compute_and_save_features(users_df, movies_df, device, output_path):
     processor = FeatureProcessor(debug=False)
     processor.prepare_user_features(users_df)
@@ -50,16 +51,10 @@ def compute_and_save_features(users_df, movies_df, device, output_path):
     return processor
 
 
-def precompute_and_save_candidates(
-    train_df, val_df, movies_df, out_train, out_val, num_candidates
-):
+def precompute_and_save_candidates(train_df, val_df, movies_df, out_train, out_val, num_candidates):
     all_movie_ids = movies_df["movie_id"].astype(int).tolist()
-    gen = CandidateGenerator(
-        train_ratings=train_df, movies=movies_df, all_movieIds=all_movie_ids
-    )
-    train_candidates = gen.precompute_training_candidates(
-        train_df, method="hybrid", num_candidates=num_candidates
-    )
+    gen = CandidateGenerator(train_ratings=train_df, movies=movies_df, all_movieIds=all_movie_ids)
+    train_candidates = gen.precompute_training_candidates(train_df, method="hybrid", num_candidates=num_candidates)
     val_candidates = gen.precompute_validation_candidates(
         val_df, train_df, method="hybrid", num_candidates=num_candidates
     )
@@ -70,7 +65,6 @@ def precompute_and_save_candidates(
     with open(out_val, "wb") as f:
         pickle.dump(val_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
     return train_candidates, val_candidates
-
 
 
 def split_data(ratings_df):
@@ -87,9 +81,7 @@ def split_data(ratings_df):
 
     # drop columns that we no longer need
     train_ratings = train_ratings[["user_id", "movie_id", "rating"]]
-    validation_ratings = validation_ratings[
-        ["user_id", "movie_id", "rating"]
-    ]  # Added this line
+    validation_ratings = validation_ratings[["user_id", "movie_id", "rating"]]  # Added this line
     test_ratings = test_ratings[["user_id", "movie_id", "rating"]]
 
     return train_ratings, validation_ratings, test_ratings
@@ -154,7 +146,11 @@ def main():
 
     processor = compute_and_save_features(users_df, movies_df, device=str(device), output_path=args.features_out)
 
-    if args.use_existing_candidates and os.path.exists(args.train_candidates_out) and os.path.exists(args.val_candidates_out):
+    if (
+        args.use_existing_candidates
+        and os.path.exists(args.train_candidates_out)
+        and os.path.exists(args.val_candidates_out)
+    ):
         with open(args.train_candidates_out, "rb") as f:
             train_candidates = pickle.load(f)
         with open(args.val_candidates_out, "rb") as f:

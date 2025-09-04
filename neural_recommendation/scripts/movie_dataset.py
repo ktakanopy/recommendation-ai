@@ -27,19 +27,21 @@ class MovieLensDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.return_ids:
-            return self.user_ids[idx], self.movie_ids[idx], self.user_features[idx], self.movie_features[idx], self.labels[idx]
+            return (
+                self.user_ids[idx],
+                self.movie_ids[idx],
+                self.user_features[idx],
+                self.movie_features[idx],
+                self.labels[idx],
+            )
         return self.user_features[idx], self.movie_features[idx], self.labels[idx]
 
     def get_dataset(self):
         user_id_list, movie_id_list, user_features_list, movie_features_list, labels = [], [], [], [], []
 
-        user_positive_items = (
-            self.ratings.groupby("user_id")["movie_id"].apply(list).to_dict()
-        )
+        user_positive_items = self.ratings.groupby("user_id")["movie_id"].apply(list).to_dict()
 
-        for user_id, positive_items in tqdm(
-            user_positive_items.items(), desc="Processing movie dataset"
-        ):
+        for user_id, positive_items in tqdm(user_positive_items.items(), desc="Processing movie dataset"):
             if user_id not in self.precomputed_candidates:
                 continue
 
@@ -101,9 +103,7 @@ class MovieLensDataset(Dataset):
             total_negatives_needed = len(positive_items) * self.num_negatives
             if len(negative_candidates) > 0:
                 sample_size = min(total_negatives_needed, len(negative_candidates))
-                sampled_negatives = np.random.choice(
-                    negative_candidates, size=sample_size, replace=False
-                )
+                sampled_negatives = np.random.choice(negative_candidates, size=sample_size, replace=False)
                 for neg_item in sampled_negatives:
                     movie_feat = self.feature_processor.get_movie_features(neg_item)
                     user_id_list.append(user_id)

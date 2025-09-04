@@ -104,41 +104,6 @@ class TestRecommendationService:
             assert service.all_movie_titles == movie_mappings["all_movie_titles"]
             mock_ncf_model.eval.assert_called_once()
 
-    def test_generate_recommendations_for_training_user_success(
-        self, recommendation_service, mock_feature_processor, mock_ncf_model
-    ):
-        """Test successful recommendation generation for training user"""
-        # Setup
-        user_id = "user123"
-        user_age = 25.0
-        gender = "M"
-        num_recommendations = 2
-
-        # Mock feature processing
-        mock_feature_processor.process_user_demographics.return_value = torch.tensor([0.1, 0.2, 0.3])
-        mock_feature_processor.get_movie_features.return_value = torch.tensor([0.4, 0.5, 0.6])
-
-        # Mock model predictions
-        mock_ncf_model.predict_batch.return_value = torch.tensor([0.8, 0.7, 0.6])
-
-        # Execute
-        result = recommendation_service.generate_recommendations_for_training_user(
-            user_id=user_id, user_age=user_age, gender=gender, num_recommendations=num_recommendations
-        )
-
-        # Assert
-        assert isinstance(result, RecommendationResult)
-        assert result.user_id == user_id
-        assert len(result.recommendations) == num_recommendations
-        assert result.total_available_movies == 3
-
-        # Check that recommendations are sorted by score (descending)
-        scores = [rec.similarity_score for rec in result.recommendations]
-        assert scores == sorted(scores, reverse=True)
-
-        # Verify feature processing was called
-        mock_feature_processor.process_user_demographics.assert_called_once()
-
     def test_create_top_recommendations(self, recommendation_service):
         """Test creation of top recommendations from probabilities"""
         # Setup

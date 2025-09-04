@@ -36,16 +36,6 @@ class TestRecommendationApplicationService:
         """Create mock domain service"""
         service = Mock(spec=RecommendationService)
 
-        # Mock return values for different methods
-        service.generate_recommendations_for_training_user.return_value = RecommendationResult(
-            user_id="test_user",
-            recommendations=[
-                Recommendation(movie_id=1, title="Movie A", similarity_score=0.9, genres="Action"),
-                Recommendation(movie_id=2, title="Movie B", similarity_score=0.8, genres="Comedy"),
-            ],
-            total_available_movies=100,
-        )
-
         service.generate_recommendations_cold_start.return_value = RecommendationResult(
             user_id="cold_start_user",
             recommendations=[
@@ -78,27 +68,6 @@ class TestRecommendationApplicationService:
     def app_service(self, mock_model_repository, mock_user_repository):
         """Create RecommendationApplicationService instance"""
         return RecommendationApplicationService(mock_model_repository, mock_user_repository)
-
-    def test_generate_recommendations_for_training_user(self, app_service, mock_domain_service):
-        """Test generating recommendations for training user"""
-        # Setup
-        app_service._domain_service = mock_domain_service
-        user_id = "test_user_123"
-        user_age = 30.0
-        gender = "F"
-        num_recommendations = 5
-
-        # Execute
-        result = app_service.generate_recommendations_for_training_user(
-            user_id=user_id, user_age=user_age, gender=gender, num_recommendations=num_recommendations
-        )
-
-        # Assert
-        assert isinstance(result, RecommendationResult)
-        assert result.user_id == "test_user"
-        mock_domain_service.generate_recommendations_for_training_user.assert_called_once_with(
-            user_id=user_id, user_age=user_age, gender=gender, num_recommendations=num_recommendations
-        )
 
     @pytest.mark.asyncio
     async def test_generate_recommendations_cold_start_success(
@@ -156,62 +125,6 @@ class TestRecommendationApplicationService:
             num_recommendations=10,  # Default value
         )
 
-    def test_domain_service_lazy_initialization(self, app_service, mock_model_repository):
-        """Test that domain service is only initialized when needed"""
-        # Initially, domain service should be None
-        assert app_service._domain_service is None
-
-        # After calling a method that needs it, it should be initialized
-        with patch.object(app_service, "_get_domain_service", return_value=Mock()) as mock_get:
-            app_service.generate_recommendations_for_training_user("user1")
-            mock_get.assert_called_once()
-
-    @pytest.mark.parametrize(
-        "user_age,gender,num_recs",
-        [
-            (18, "M", 1),
-            (25, "F", 5),
-            (65, "Other", 10),
-            (30, "M", 20),
-        ],
-    )
-    def test_generate_recommendations_for_training_user_parametrized(
-        self, app_service, mock_domain_service, user_age, gender, num_recs
-    ):
-        """Test training user recommendations with various parameters"""
-        # Setup
-        app_service._domain_service = mock_domain_service
-
-        # Execute
-        result = app_service.generate_recommendations_for_training_user(
-            user_id="param_user", user_age=user_age, gender=gender, num_recommendations=num_recs
-        )
-
-        # Assert
-        assert isinstance(result, RecommendationResult)
-        mock_domain_service.generate_recommendations_for_training_user.assert_called_once_with(
-            user_id="param_user", user_age=user_age, gender=gender, num_recommendations=num_recs
-        )
-
-    @pytest.mark.asyncio
-    async def test_multiple_cold_start_calls_same_user(
-        self, app_service, mock_user_repository, mock_domain_service, sample_user
-    ):
-        """Test multiple cold start calls for the same user"""
-        # Setup
-        app_service._domain_service = mock_domain_service
-        user_id = 1
-        mock_user_repository.get_by_id.return_value = sample_user
-
-        # Execute
-        result1 = await app_service.generate_recommendations_cold_start(user_id=user_id, num_recommendations=3)
-        result2 = await app_service.generate_recommendations_cold_start(user_id=user_id, num_recommendations=5)
-
-        # Assert
-        assert isinstance(result1, RecommendationResult)
-        assert isinstance(result2, RecommendationResult)
-        assert mock_user_repository.get_by_id.call_count == 2
-        assert mock_domain_service.generate_recommendations_cold_start.call_count == 2
 
     @pytest.mark.asyncio
     async def test_cold_start_with_user_without_ratings(self, app_service, mock_user_repository, mock_domain_service):
