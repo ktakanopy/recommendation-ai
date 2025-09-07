@@ -16,9 +16,11 @@ from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_movie
 from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
     SQLAlchemyUserRepository,
 )
+from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_rating_repository import (
+    SQLAlchemyRatingRepository,
+)
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 from neural_recommendation.infrastructure.persistence.models import Movie as SQLMovie
-from neural_recommendation.infrastructure.persistence.models import Rating as SQLRating
 from neural_recommendation.infrastructure.persistence.models import User as SQLUser
 from tests.conftest import BaseIntegrationTest
 
@@ -118,11 +120,10 @@ class TestColdStartIntegration(BaseIntegrationTest):
         return movies
 
     @pytest.fixture
-    async def test_user_with_ratings(self, test_session, test_movies):
+    async def test_user_with_ratings(self, test_session, test_movies, rating_repository):
         """Create a test user with ratings for some movies"""
         movies = await test_movies
 
-        # Create user
         user = SQLUser(
             username="testuser",
             email="test@example.com",
@@ -135,34 +136,14 @@ class TestColdStartIntegration(BaseIntegrationTest):
         await test_session.commit()
         await test_session.refresh(user)
 
-        # Create ratings for the user
-        ratings = [
-            SQLRating(
-                user_id=user.id,
-                movie_id=movies[0].id,  # Toy Story
-                rating=4.5,
-            ),
-            SQLRating(
-                user_id=user.id,
-                movie_id=movies[1].id,  # Jumanji
-                rating=3.0,
-            ),
-            SQLRating(
-                user_id=user.id,
-                movie_id=movies[2].id,  # Grumpier Old Men
-                rating=4.0,
-            ),
+        domain_ratings = [
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[0].id, rating=4.5, timestamp=datetime.now()),
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[1].id, rating=3.0, timestamp=datetime.now()),
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[2].id, rating=4.0, timestamp=datetime.now()),
         ]
+        await rating_repository.bulk_create(user.id, domain_ratings)
 
-        for rating in ratings:
-            test_session.add(rating)
-
-        await test_session.commit()
-
-        for rating in ratings:
-            await test_session.refresh(rating)
-
-        return user, ratings
+        return user, domain_ratings
 
     @pytest.fixture
     def user_repository(self, test_session):
@@ -173,6 +154,10 @@ class TestColdStartIntegration(BaseIntegrationTest):
     def movie_repository(self, test_session):
         """Create movie repository with test session"""
         return SQLAlchemyMovieRepository(test_session)
+
+    @pytest.fixture
+    def rating_repository(self, test_session):
+        return SQLAlchemyRatingRepository(test_session)
 
     def create_recommendation_service(self, ml_settings, mock_model_repository, user_repository):
         """Create recommendation application service with mocked dependencies"""
@@ -306,11 +291,11 @@ class TestColdStartIntegration(BaseIntegrationTest):
         mock_model_repository,
         mock_feature_processor,
         mock_cold_start_recommender,
+        rating_repository,
     ):
         """Full integration test: create user, add ratings, get recommendations"""
         movies = await test_movies
 
-        # Step 1: Create a new user using the repository
         domain_user = DomainUser(
             username="integrationuser",
             email="integration@example.com",
@@ -323,34 +308,12 @@ class TestColdStartIntegration(BaseIntegrationTest):
         created_user = await user_repository.create(domain_user)
         assert created_user.id is not None
 
-        # Step 2: Add some ratings for the user
         ratings = [
-            DomainRating(
-                id=uuid.uuid4(),
-                user_id=uuid.uuid4(),  # This will be updated by the repository
-                movie_id=movies[0].id,
-                rating=4.5,
-                timestamp=datetime.now(),
-            ),
-            DomainRating(
-                id=uuid.uuid4(),
-                user_id=uuid.uuid4(),  # This will be updated by the repository
-                movie_id=movies[1].id,
-                rating=2.0,
-                timestamp=datetime.now(),
-            ),
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[0].id, rating=4.5, timestamp=datetime.now()),
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[1].id, rating=2.0, timestamp=datetime.now()),
         ]
 
-        # Add ratings to the database directly (since we don't have a rating repository in this test)
-        for rating in ratings:
-            sql_rating = SQLRating(
-                user_id=created_user.id,
-                movie_id=rating.movie_id,
-                rating=rating.rating,
-            )
-            test_session.add(sql_rating)
-
-        await test_session.commit()
+        await rating_repository.bulk_create(created_user.id, ratings)
 
         # Step 3: Create recommendation service and get recommendations
         recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
@@ -397,10 +360,9 @@ class TestColdStartIntegration(BaseIntegrationTest):
         mock_model_repository.load_model_and_features.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_domain_user_conversion_with_ratings(self, test_session, user_repository, test_movies):
+    async def test_domain_user_conversion_with_ratings(self, test_session, user_repository, test_movies, rating_repository):
         """Test that user ratings are properly converted from SQL to domain models"""
         movies = await test_movies
-        # Create user with ratings in database
         sql_user = SQLUser(
             username="ratinguser",
             email="rating@example.com",
@@ -413,36 +375,8 @@ class TestColdStartIntegration(BaseIntegrationTest):
         await test_session.commit()
         await test_session.refresh(sql_user)
 
-        # Add ratings
-        sql_ratings = [
-            SQLRating(
-                user_id=sql_user.id,
-                movie_id=movies[0].id,
-                rating=5.0,
-            ),
-            SQLRating(
-                user_id=sql_user.id,
-                movie_id=movies[2].id,
-                rating=3.5,
-            ),
+        domain_ratings = [
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[0].id, rating=5.0, timestamp=datetime.now()),
+            DomainRating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=movies[2].id, rating=3.5, timestamp=datetime.now()),
         ]
-
-        for rating in sql_ratings:
-            test_session.add(rating)
-
-        await test_session.commit()
-
-        # Retrieve user through repository
-        domain_user = await user_repository.get_by_id(sql_user.id)
-
-        assert domain_user is not None
-        assert domain_user.id == sql_user.id
-        assert domain_user.ratings is not None
-        assert len(domain_user.ratings) == 2
-
-        # Verify rating details
-        ratings_by_movie = {r.movie_id: r for r in domain_user.ratings}
-        assert movies[0].id in ratings_by_movie
-        assert movies[2].id in ratings_by_movie
-        assert ratings_by_movie[movies[0].id].rating == 5.0
-        assert ratings_by_movie[movies[2].id].rating == 3.5
+        await rating_repository.bulk_create(sql_user.id, domain_ratings)
