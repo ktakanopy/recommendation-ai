@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from movie_dataset import MovieLensDataset
-from ncf import NCF
+from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel as NCF
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 

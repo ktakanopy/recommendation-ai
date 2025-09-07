@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+import joblib
 
 from neural_recommendation.infrastructure.logging.logger import Logger
 
@@ -265,3 +266,23 @@ class NCFFeatureProcessor:
             batch_features.append(features)
 
         return torch.stack(batch_features).to(device)
+
+    def save(self, path: str) -> None:
+        joblib.dump(
+            {
+                "gender_encoder": self.gender_encoder,
+                "age_encoder": self.age_encoder,
+                "occupation_encoder": self.occupation_encoder,
+                "encoders_fitted": self.encoders_fitted,
+                "user_feature_dim": self.user_feature_dim,
+            },
+            path,
+        )
+
+    def load(self, path: str) -> None:
+        obj = joblib.load(path)
+        self.gender_encoder = obj["gender_encoder"]
+        self.age_encoder = obj["age_encoder"]
+        self.occupation_encoder = obj["occupation_encoder"]
+        self.encoders_fitted = obj.get("encoders_fitted", False)
+        self.user_feature_dim = obj.get("user_feature_dim")

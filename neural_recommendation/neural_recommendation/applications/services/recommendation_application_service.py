@@ -32,6 +32,7 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         model, feature_info = self._model_repository.load_model_and_features()
         # Initialize NCF feature processor
         feature_service = NCFFeatureProcessor()
+        feature_service.load(self.ml_settings.feature_processor_path)
 
         # Create movie mappings - for NCF we'll use a simplified approach
         title_to_idx = feature_info.sentence_embeddings.title_to_idx

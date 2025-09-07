@@ -6,17 +6,17 @@ import sys
 import pandas as pd
 import torch
 
-sys.path.insert(0, "/home/kevin/projects/recommendation-ai/study")
 
-from candidate_generator import CandidateGenerator
-from feature_processor import FeatureProcessor
+from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
 from trainer import NCFTrainer
 
 from neural_recommendation.applications.interfaces.dtos.feature_info_dto import (
     FeatureInfoDto,
     SentenceEmbeddingsDto,
 )
+from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor as FeatureProcessor
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
+from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -46,6 +46,8 @@ def compute_and_save_features(users_df, movies_df, device, output_path):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     print(f"Saving feature info to {output_path}")
     feature_info.save(output_path)
+    settings = MLModelSettings()
+    processor.save(settings.feature_processor_path)
     return processor
 
 
