@@ -3,6 +3,7 @@ from neural_recommendation.infrastructure.config.settings import MLModelSettings
 from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
+from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
@@ -16,10 +17,11 @@ logger = Logger.get_logger(__name__)
 class RecommendationApplicationService(RecommendationApplicationServicePort):
     """Application service for NCF-based recommendations"""
 
-    def __init__(self, ml_settings: MLModelSettings, model_repository: ModelInferenceRepository, user_repository: UserRepository):
+    def __init__(self, ml_settings: MLModelSettings, model_repository: ModelInferenceRepository, user_repository: UserRepository, rating_repository: RatingRepository):
         self.ml_settings = ml_settings
         self._model_repository = model_repository
         self.user_repository = user_repository
+        self.rating_repository = rating_repository
         self._domain_service = self._get_domain_service()
 
     def _get_domain_service(self) -> RecommendationService:
@@ -62,6 +64,9 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         user = await self.user_repository.get_by_id(user_id)
         if not user:
             raise ValueError(f"User with ID {user_id} not found")
+
+        ratings = await self.rating_repository.get_by_user_id(user.id)
+        user.ratings = ratings
 
         # Use the specialized cold start method with user data from database
         return self._domain_service.generate_recommendations_cold_start(

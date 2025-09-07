@@ -15,22 +15,7 @@ class SQLAlchemyUserRepository(UserRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    def _to_domain(self, sql_user: SQLUser, include_ratings: bool = False) -> DomainUser:
-        """Convert SQLAlchemy model to domain model"""
-        domain_ratings = None
-        if include_ratings:
-            domain_ratings = []
-            if hasattr(sql_user, "ratings") and sql_user.ratings:
-                for sql_rating in sql_user.ratings:
-                    domain_rating = Rating(
-                        id=sql_rating.id,
-                        user_id=sql_rating.user_id,
-                        movie_id=sql_rating.movie_id,
-                        rating=sql_rating.rating,
-                        timestamp=sql_rating.timestamp,
-                    )
-                    domain_ratings.append(domain_rating)
-
+    def _to_domain(self, sql_user: SQLUser) -> DomainUser:
         return DomainUser(
             username=sql_user.username,
             email=sql_user.email,
@@ -40,7 +25,7 @@ class SQLAlchemyUserRepository(UserRepository):
             occupation=sql_user.occupation,
             id=sql_user.id,
             created_at=sql_user.created_at,
-            ratings=domain_ratings,
+            ratings=None,
         )
 
     def _to_sql(self, domain_user: DomainUser) -> SQLUser:
@@ -72,7 +57,7 @@ class SQLAlchemyUserRepository(UserRepository):
         if user.ratings:
             await self._create_user_ratings(sql_user.id, user.ratings)
 
-        return self._to_domain(sql_user, include_ratings=bool(user.ratings))
+        return self._to_domain(sql_user)
 
     async def _create_user_ratings(self, user_id: int, ratings: List[Rating]) -> None:
         """Private method to create ratings for a user"""
@@ -84,13 +69,8 @@ class SQLAlchemyUserRepository(UserRepository):
         await self.session.commit()
 
     async def get_by_id(self, user_id: int) -> Optional[DomainUser]:
-        query = (
-            select(SQLUser)
-            .options(selectinload(SQLUser.ratings))
-            .where(SQLUser.id == user_id)
-        )
-        sql_user = await self.session.scalar(query)
-        return self._to_domain(sql_user, include_ratings=True) if sql_user else None
+        sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))
+        return self._to_domain(sql_user) if sql_user else None
 
     async def get_by_email(self, email: str) -> Optional[DomainUser]:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.email == email))
@@ -144,7 +124,7 @@ class SQLAlchemyUserRepository(UserRepository):
 
         await self.session.commit()
         await self.session.refresh(sql_user)
-        return self._to_domain(sql_user, include_ratings=True)
+        return self._to_domain(sql_user)
 
     async def delete(self, user_id: int) -> bool:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))

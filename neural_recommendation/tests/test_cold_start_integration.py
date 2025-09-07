@@ -159,9 +159,9 @@ class TestColdStartIntegration(BaseIntegrationTest):
     def rating_repository(self, test_session):
         return SQLAlchemyRatingRepository(test_session)
 
-    def create_recommendation_service(self, ml_settings, mock_model_repository, user_repository):
+    def create_recommendation_service(self, ml_settings, mock_model_repository, user_repository, rating_repository):
         """Create recommendation application service with mocked dependencies"""
-        return RecommendationApplicationService(ml_settings, mock_model_repository, user_repository)
+        return RecommendationApplicationService(ml_settings, mock_model_repository, user_repository, rating_repository)
 
     @pytest.mark.asyncio
     async def test_cold_start_recommendations_with_database_user(
@@ -172,10 +172,11 @@ class TestColdStartIntegration(BaseIntegrationTest):
         test_user_with_ratings,
         mock_feature_processor,
         mock_cold_start_recommender,
+        rating_repository,
     ):
         """Test cold start recommendations using a real user from database with ratings"""
         user, ratings = await test_user_with_ratings
-        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
+        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository, rating_repository)
 
         # Mock the domain service components
         with (
@@ -225,9 +226,10 @@ class TestColdStartIntegration(BaseIntegrationTest):
         user_repository,
         mock_feature_processor,
         mock_cold_start_recommender,
+        rating_repository,
     ):
         """Test cold start recommendations for a new user without any ratings"""
-        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
+        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository, rating_repository)
         # Create a new user without ratings
         user = SQLUser(
             username="newuser",
@@ -271,9 +273,9 @@ class TestColdStartIntegration(BaseIntegrationTest):
             assert user_ratings_arg is None
 
     @pytest.mark.asyncio
-    async def test_cold_start_recommendations_user_not_found(self, ml_settings, mock_model_repository, user_repository):
+    async def test_cold_start_recommendations_user_not_found(self, ml_settings, mock_model_repository, user_repository, rating_repository):
         """Test cold start recommendations when user doesn't exist"""
-        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
+        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository, rating_repository)
         non_existent_user_id = 99999
 
         # Execute and expect ValueError
@@ -316,7 +318,7 @@ class TestColdStartIntegration(BaseIntegrationTest):
         await rating_repository.bulk_create(created_user.id, ratings)
 
         # Step 3: Create recommendation service and get recommendations
-        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
+        recommendation_service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository, rating_repository)
 
         # Mock the domain service components
         with (
@@ -347,9 +349,9 @@ class TestColdStartIntegration(BaseIntegrationTest):
             assert user_demographics["age"] == 28
             assert user_demographics["occupation"] == "Developer"
 
-    def test_recommendation_service_initialization(self, ml_settings, mock_model_repository, user_repository):
+    def test_recommendation_service_initialization(self, ml_settings, mock_model_repository, user_repository, rating_repository):
         """Test that the recommendation service initializes correctly"""
-        service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository)
+        service = self.create_recommendation_service(ml_settings, mock_model_repository, user_repository, rating_repository)
 
         assert service.ml_settings == ml_settings
         assert service._model_repository == mock_model_repository

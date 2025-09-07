@@ -11,8 +11,10 @@ from neural_recommendation.domain.models.deep_learning.recommendation import Rec
 from neural_recommendation.domain.models.rating import Rating
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
+from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.services.recommendation_service import RecommendationService
+from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
 
 class TestRecommendationApplicationService:
@@ -22,7 +24,17 @@ class TestRecommendationApplicationService:
     def mock_model_repository(self):
         """Create mock model inference repository"""
         repository = Mock(spec=ModelInferenceRepository)
-        repository.load_model_and_features = Mock(return_value=(Mock(), Mock()))
+
+        mock_model = Mock()
+        mock_model.parameters = Mock(return_value=iter([1]))
+        mock_model.eval = Mock()
+        mock_model.predict_batch = Mock()
+
+        mock_feature_info = Mock()
+        mock_feature_info.sentence_embeddings = Mock()
+        mock_feature_info.sentence_embeddings.title_to_idx = {"Movie A": 1, "Movie B": 2}
+
+        repository.load_model_and_features = Mock(return_value=(mock_model, mock_feature_info))
         return repository
 
     @pytest.fixture
@@ -30,6 +42,16 @@ class TestRecommendationApplicationService:
         """Create mock user repository"""
         repository = AsyncMock(spec=UserRepository)
         return repository
+
+    @pytest.fixture
+    def mock_rating_repository(self):
+        repository = AsyncMock(spec=RatingRepository)
+        repository.get_by_user_id.return_value = []
+        return repository
+
+    @pytest.fixture
+    def ml_settings(self):
+        return Mock(spec=MLModelSettings)
 
     @pytest.fixture
     def mock_domain_service(self):
@@ -65,9 +87,9 @@ class TestRecommendationApplicationService:
         )
 
     @pytest.fixture
-    def app_service(self, mock_model_repository, mock_user_repository):
+    def app_service(self, ml_settings, mock_model_repository, mock_user_repository, mock_rating_repository):
         """Create RecommendationApplicationService instance"""
-        return RecommendationApplicationService(mock_model_repository, mock_user_repository)
+        return RecommendationApplicationService(ml_settings, mock_model_repository, mock_user_repository, mock_rating_repository)
 
     @pytest.mark.asyncio
     async def test_generate_recommendations_cold_start_success(
