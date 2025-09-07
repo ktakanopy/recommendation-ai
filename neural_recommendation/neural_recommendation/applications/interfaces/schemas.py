@@ -18,9 +18,7 @@ class Token(BaseModel):
 
 
 class RatingSchema(BaseModel):
-    """Schema for rating data"""
-
-    movie_id: int  # Will be converted to UUID
+    movie_id: uuid.UUID
     rating: float
     timestamp: Optional[datetime] = None
 
@@ -32,7 +30,6 @@ class UserSchema(BaseModel):
     age: Optional[int] = None
     gender: Optional[str] = None
     occupation: Optional[int] = None
-    ratings: Optional[List[RatingSchema]] = None
 
 
 class Message(BaseModel):
@@ -46,7 +43,6 @@ class UserPublic(BaseModel):
     age: Optional[int] = None
     gender: Optional[str] = None
     occupation: Optional[int] = None
-    ratings_count: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -77,3 +73,12 @@ class MovieDB(MovieSchema):
 
 class MovieList(BaseModel):
     movies: list[MoviePublic]
+
+
+class RatingPublic(BaseModel):
+    id: uuid.UUID
+    user_id: int
+    movie_id: uuid.UUID
+    rating: float
+    timestamp: datetime
+    model_config = ConfigDict(from_attributes=True)

@@ -12,6 +12,7 @@ from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
+from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
@@ -24,6 +25,9 @@ from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_movie
 )
 from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
     SQLAlchemyUserRepository,
+)
+from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_rating_repository import (
+    SQLAlchemyRatingRepository,
 )
 from neural_recommendation.infrastructure.adapters.services.jwt_auth_service import JWTAuthService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings, Settings
@@ -58,6 +62,10 @@ def get_auth_service(
     return JWTAuthService(session, settings)
 
 
+def get_rating_repository(session: Annotated[AsyncSession, Depends(get_session)]) -> RatingRepository:
+    return SQLAlchemyRatingRepository(session)
+
+
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)], auth_service: Annotated[AuthService, Depends(get_auth_service)]
 ) -> User:
@@ -82,5 +90,6 @@ def get_recommendation_service(
     model_repository: Annotated[ModelInferenceRepository, Depends(get_model_inference_repository)],
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
     ml_settings: Annotated[MLModelSettings, Depends(get_ml_settings)],
+    rating_repository: Annotated[RatingRepository, Depends(get_rating_repository)],
 ) -> RecommendationApplicationServicePort:
-    return RecommendationApplicationService(ml_settings, model_repository, user_repository)
+    return RecommendationApplicationService(ml_settings, model_repository, user_repository, rating_repository)
