@@ -9,8 +9,8 @@ from neural_recommendation.infrastructure.deep_learning.model_inference_manager 
 class ModelInferenceManagerAdapter(ModelInferenceRepository):
     """Adapter that implements the port using the existing ModelInferenceManager"""
 
-    def __init__(self, models_dir: str, device: str):
-        self._manager = ModelInferenceManager(models_dir=models_dir, device=device)
+    def __init__(self, models_dir: str, device: str, data_dir: str, processed_data_dir: str):
+        self._manager = ModelInferenceManager(models_dir=models_dir, device=device, data_dir=data_dir, processed_data_dir=processed_data_dir)
 
     def load_model_and_features(self) -> Tuple[NCFModel, FeatureInfoDto]:
         """Load trained model and feature information"""

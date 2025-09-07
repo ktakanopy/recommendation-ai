@@ -36,18 +36,16 @@ def compute_and_save_features(users_df, movies_df, device, output_path):
         embedding_matrix=embedding_matrix,
         embedding_dim=embedding_dim,
     )
-    unique_movie_titles = titles
-    unique_user_ids = [str(x) for x in sorted(users_df["user_id"].unique().tolist())]
+    movies_genres_dict = movies_df.set_index("movie_id")["genres"].to_dict()
     feature_info = FeatureInfoDto(
         age_mean=age_mean,
         age_std=age_std,
         sentence_embeddings=sentence_embeddings,
-        unique_movie_titles=unique_movie_titles,
-        unique_user_ids=unique_user_ids,
+        movies_genres_dict=movies_genres_dict,
     )
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "wb") as f:
-        pickle.dump({"additional_feature_info": feature_info.to_dict()}, f, protocol=pickle.HIGHEST_PROTOCOL)
+    print(f"Saving feature info to {output_path}")
+    feature_info.save(output_path)
     return processor
 
 

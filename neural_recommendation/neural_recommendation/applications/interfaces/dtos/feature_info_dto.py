@@ -44,7 +44,7 @@ class FeatureInfoDto:
                 "embedding_matrix": self.sentence_embeddings.embedding_matrix,
                 "embedding_dim": self.sentence_embeddings.embedding_dim,
             },
-            "movie_genres_dict": self.movies_genres_dict,
+            "movies_genres_dict": self.movies_genres_dict,
         }
 
     def save(self, path: str):
@@ -54,4 +54,5 @@ class FeatureInfoDto:
     @classmethod
     def load(cls, path: str):
         with open(path, "rb") as f:
-            return cls.from_dict(pickle.load(f))
+            loaded = pickle.load(f)
+            return cls.from_dict(loaded)
