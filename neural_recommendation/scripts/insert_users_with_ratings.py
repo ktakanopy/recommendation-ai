@@ -79,7 +79,7 @@ def recommend_cold_start(base_url: str, user_id: int, num_recommendations: int, 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base_url", type=str, default="http://localhost:8000")
-    parser.add_argument("--num_users", type=int, default=5)
+    parser.add_argument("--num_users", type=int, default=2)
     parser.add_argument("--ratings_per_user", type=int, default=5)
     parser.add_argument("--movies_fetch_limit", type=int, default=500)
     parser.add_argument("--password", type=str, default="password123")
@@ -123,7 +123,7 @@ def main() -> None:
                 continue
         picks = random.sample(movies, k=min(args.ratings_per_user, len(movies)))
         for m in picks:
-            rating_value = random.choice([1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0])
+            rating_value = random.choice([4.0, 4.5, 5.0])
             create_rating(args.base_url, token, m["id"], rating_value, args.timeout)
 
 

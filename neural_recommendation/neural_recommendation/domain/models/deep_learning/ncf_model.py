@@ -173,6 +173,7 @@ class NCFModel(nn.Module):
 
             # Load weights
             model.load_state_dict(checkpoint["state_dict"])
+            model.to("cuda" if torch.cuda.is_available() else "cpu")
 
             print(f"Complete model loaded successfully from {filepath}")
             return model

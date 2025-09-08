@@ -13,4 +13,4 @@ class GetMovieUseCase:
         if not movie:
             raise ValueError(f"Movie with id {movie_id} not found")
 
-        return MoviePublic(id=movie.id, title=movie.title, genres=movie.genres)
+        return MoviePublic(id=movie.id, title=movie.title, genres=movie.genres, original_id=movie.original_id)
