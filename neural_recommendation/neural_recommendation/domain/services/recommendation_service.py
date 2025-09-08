@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 
+from neural_recommendation.applications.interfaces.dtos.feature_info_dto import FeatureInfoDto
 import torch
 
 from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
@@ -16,14 +17,14 @@ logger = Logger.get_logger(__name__)
 class RecommendationService:
     """Domain service for generating movie recommendations using NCF model"""
 
-    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, movie_mappings: Dict[str, Any]):
+    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, feature_info: FeatureInfoDto):
         self.model = model
         self.feature_service = feature_service
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.eval()
-        self.title_to_idx = movie_mappings.get("title_to_idx", {})
-        self.idx_to_title = movie_mappings.get("idx_to_title", {})
-        self.all_movie_titles = movie_mappings.get("all_movie_titles", [])
+        self.title_to_idx = feature_info.sentence_embeddings.title_to_idx
+        self.idx_to_title = feature_info.sentence_embeddings.idx_to_title
+        self.all_movie_titles = list(feature_info.sentence_embeddings.title_to_idx.keys())
         # Movie ID to title mapping for quick lookup
         self.movie_id_to_title = {v: k for k, v in self.title_to_idx.items()}
 

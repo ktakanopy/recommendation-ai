@@ -34,24 +34,13 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         feature_service = NCFFeatureProcessor()
         feature_service.load(self.ml_settings.feature_processor_path)
 
-        # Create movie mappings - for NCF we'll use a simplified approach
-        title_to_idx = feature_info.sentence_embeddings.title_to_idx
-
-        idx_to_title = {idx: title for title, idx in title_to_idx.items()}
-        all_movie_titles = list(title_to_idx.keys())
-
-        movie_mappings = {
-            "title_to_idx": title_to_idx,
-            "idx_to_title": idx_to_title,
-            "all_movie_titles": all_movie_titles,
-        }
 
         # Create domain service
         domain_service = RecommendationService(
-            model=model, feature_service=feature_service, movie_mappings=movie_mappings
+            model=model, feature_service=feature_service, feature_info=feature_info
         )
 
-        logger.info(f"NCF recommendation service initialized with {len(all_movie_titles)} movies")
+        logger.info(f"NCF recommendation service initialized with {len(feature_info.sentence_embeddings.title_to_idx)} movies")
 
         return domain_service
 

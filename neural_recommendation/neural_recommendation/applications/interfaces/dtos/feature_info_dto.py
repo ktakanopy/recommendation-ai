@@ -7,9 +7,11 @@ import torch
 
 @dataclass
 class SentenceEmbeddingsDto:
-    title_to_idx: Dict[str, int]
     embedding_matrix: torch.Tensor
     embedding_dim: int
+    title_to_idx: Dict[str, int]
+    idx_to_title: Dict[int, str]
+    movies_genres_dict: Dict[str, List[str]]
 
 
 @dataclass
@@ -17,22 +19,22 @@ class FeatureInfoDto:
     age_mean: float
     age_std: float
     sentence_embeddings: SentenceEmbeddingsDto
-    movies_genres_dict: Dict[str, List[str]]
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "FeatureInfoDto":
         sentence_embeddings_dict = data["sentence_embeddings"]
         sentence_embeddings = SentenceEmbeddingsDto(
-            title_to_idx=sentence_embeddings_dict["title_to_idx"],
             embedding_matrix=sentence_embeddings_dict["embedding_matrix"],
             embedding_dim=sentence_embeddings_dict["embedding_dim"],
+            title_to_idx=sentence_embeddings_dict["title_to_idx"],
+            idx_to_title=sentence_embeddings_dict["idx_to_title"],
+            movies_genres_dict=sentence_embeddings_dict["movies_genres_dict"],
         )
 
         return cls(
             age_mean=data["age_mean"],
             age_std=data["age_std"],
             sentence_embeddings=sentence_embeddings,
-            movies_genres_dict=data["movies_genres_dict"],
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -40,11 +42,12 @@ class FeatureInfoDto:
             "age_mean": self.age_mean,
             "age_std": self.age_std,
             "sentence_embeddings": {
-                "title_to_idx": self.sentence_embeddings.title_to_idx,
                 "embedding_matrix": self.sentence_embeddings.embedding_matrix,
                 "embedding_dim": self.sentence_embeddings.embedding_dim,
+                "title_to_idx": self.sentence_embeddings.title_to_idx,
+                "idx_to_title": self.sentence_embeddings.idx_to_title,
+                "movies_genres_dict": self.sentence_embeddings.movies_genres_dict,
             },
-            "movies_genres_dict": self.movies_genres_dict,
         }
 
     def save(self, path: str):

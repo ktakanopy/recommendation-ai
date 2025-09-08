@@ -1,3 +1,4 @@
+import pickle
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -6,7 +7,6 @@ import torch
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-import joblib
 
 from neural_recommendation.infrastructure.logging.logger import Logger
 
@@ -109,7 +109,7 @@ class NCFFeatureProcessor:
         logger.info(f"User feature dimension: {self.user_feature_dim}")
         return user_features
 
-    def prepare_movie_features(self, movies_df: pd.DataFrame, device: str = "cpu") -> torch.Tensor:
+    def _prepare_embeddings(self, movies_df: pd.DataFrame, device: str = "cpu") -> torch.Tensor:
         """Prepare movie features using sentence transformers for title and genres"""
         if self.debug:
             logger.info("Preparing movie features with sentence transformers...")
@@ -168,29 +168,38 @@ class NCFFeatureProcessor:
             logger.info(f"Movie feature dimension: {self.movie_feature_dim}")
         return movie_embeddings_normalized
 
+    def prepare_movie_features(self, movies_df: pd.DataFrame, device: str = "cpu") -> torch.Tensor:
+        movie_embeddings_normalized = self._prepare_embeddings(movies_df, device=device)
+
+        title_to_idx = movies_df.set_index("title")["movie_id"].to_dict()
+        idx_to_title = movies_df.set_index("movie_id")["title"].to_dict()
+
+        movies_genres_dict = movies_df.set_index("movie_id")["genres"].to_dict()
+
+
+        return { "movie_embeddings": movie_embeddings_normalized , "title_to_idx": title_to_idx, "idx_to_title": idx_to_title,
+        "movies_genres_dict": movies_genres_dict}
+
     def get_user_features(self, user_id: int) -> torch.Tensor:
         """Get cached user features"""
-        if user_id in self.user_features_cache:
-            return self.user_features_cache[user_id]
-
         if self.user_feature_dim is None:
             raise ValueError("User features not prepared. Call prepare_user_features first.")
 
-        # Return zero vector for unknown users
-        logger.warning(f"User {user_id} not found, returning zero features")
-        return torch.zeros(self.user_feature_dim)
+
+        if user_id in self.user_features_cache:
+            return self.user_features_cache[user_id]
+        else:
+            raise ValueError(f"User {user_id} not found in user features cache")
 
     def get_movie_features(self, movie_id: int) -> torch.Tensor:
         """Get cached movie features"""
-        if movie_id in self.movie_features_cache:
-            return self.movie_features_cache[movie_id]
-
         if self.movie_feature_dim is None:
             raise ValueError("Movie features not prepared. Call prepare_movie_features first.")
+        if movie_id in self.movie_features_cache:
+            return self.movie_features_cache[movie_id]
+        else:
+            raise ValueError(f"Movie {movie_id} not found in movie features cache")
 
-        # Return zero vector for unknown movies
-        logger.warning(f"Movie {movie_id} not found, returning zero features")
-        return torch.zeros(self.movie_feature_dim)
 
     def process_user_demographics(self, user_demographics: Dict[str, Any]) -> torch.Tensor:
         """
@@ -268,23 +277,29 @@ class NCFFeatureProcessor:
         return torch.stack(batch_features).to(device)
 
     def save(self, path: str) -> None:
-        joblib.dump(
-            {
-                "gender_encoder": self.gender_encoder,
-                "age_encoder": self.age_encoder,
-                "occupation_encoder": self.occupation_encoder,
-                "encoders_fitted": self.encoders_fitted,
-                "user_feature_dim": self.user_feature_dim,
-                "movie_feature_dim": self.movie_feature_dim,
-            },
-            path,
-        )
+        with open(path, "wb") as f:
+            pickle.dump({
+                    "gender_encoder": self.gender_encoder,
+                    "age_encoder": self.age_encoder,
+                    "occupation_encoder": self.occupation_encoder,
+                    "encoders_fitted": self.encoders_fitted,
+                    "user_feature_dim": self.user_feature_dim,
+                    "movie_feature_dim": self.movie_feature_dim,
+                    "user_features_cache": self.user_features_cache,
+                    "movie_features_cache": self.movie_features_cache,
+                },
+                f,
+            )
 
     def load(self, path: str) -> None:
-        obj = joblib.load(path)
-        self.gender_encoder = obj["gender_encoder"]
-        self.age_encoder = obj["age_encoder"]
-        self.occupation_encoder = obj["occupation_encoder"]
-        self.encoders_fitted = obj.get("encoders_fitted", False)
-        self.user_feature_dim = obj.get("user_feature_dim")
-        self.movie_feature_dim = obj.get("movie_feature_dim")
+        with open(path, "rb") as f:
+            obj = pickle.load(f)
+            self.gender_encoder = obj["gender_encoder"]
+            self.age_encoder = obj["age_encoder"]
+            self.occupation_encoder = obj["occupation_encoder"]
+            self.encoders_fitted = obj["encoders_fitted"]
+            self.user_feature_dim = obj["user_feature_dim"]
+            self.movie_feature_dim = obj["movie_feature_dim"]
+            self.user_features_cache = obj["user_features_cache"]
+            self.movie_features_cache = obj["movie_features_cache"]
+            return self

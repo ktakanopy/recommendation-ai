@@ -24,24 +24,31 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 def compute_and_save_features(users_df, movies_df, device, output_path):
     processor = FeatureProcessor(debug=False)
     processor.prepare_user_features(users_df)
-    movie_embeddings = processor.prepare_movie_features(movies_df, device=device)
+    movie_prep_features = processor.prepare_movie_features(movies_df, device=device)
+
+    movie_embeddings = movie_prep_features["movie_embeddings"]
+    title_to_idx = movie_prep_features["title_to_idx"]
+    idx_to_title = movie_prep_features["idx_to_title"]
+    movie_genres_dict = movie_prep_features["movies_genres_dict"]
+
     age_mean = float(users_df["age"].mean())
     age_std = float(users_df["age"].std()) or 1.0
-    titles = movies_df["title"].tolist()
-    title_to_idx = {t: i for i, t in enumerate(titles)}
-    embedding_matrix = movie_embeddings.cpu()
+
+    embedding_matrix = movie_embeddings.to(device)
     embedding_dim = int(embedding_matrix.shape[1])
+
     sentence_embeddings = SentenceEmbeddingsDto(
-        title_to_idx=title_to_idx,
         embedding_matrix=embedding_matrix,
         embedding_dim=embedding_dim,
+        title_to_idx=title_to_idx,
+        idx_to_title=idx_to_title,
+        movies_genres_dict=movie_genres_dict,
     )
-    movies_genres_dict = movies_df.set_index("movie_id")["genres"].to_dict()
+
     feature_info = FeatureInfoDto(
         age_mean=age_mean,
         age_std=age_std,
         sentence_embeddings=sentence_embeddings,
-        movies_genres_dict=movies_genres_dict,
     )
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     print(f"Saving feature info to {output_path}")

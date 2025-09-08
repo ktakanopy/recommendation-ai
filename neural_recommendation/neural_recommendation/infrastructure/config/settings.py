@@ -25,7 +25,7 @@ class MLModelSettings(BaseSettings):
     models_dir: str = "models"
     model_name: str = "ncf.pth"
     processed_data_dir: str = "data/processed_data"
-    feature_processor_path: str = "data/processed_data/user_feature_encoders.joblib"
+    feature_processor_path: str = "feature_processor.joblib"
     data_dir: str = "data/ml-1m"
     movie_name: str = "movies.dat"
     candidate_gen_name: str = "candidate_gen.pkl"
