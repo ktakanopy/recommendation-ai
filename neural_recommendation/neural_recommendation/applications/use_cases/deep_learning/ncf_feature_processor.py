@@ -275,6 +275,7 @@ class NCFFeatureProcessor:
                 "occupation_encoder": self.occupation_encoder,
                 "encoders_fitted": self.encoders_fitted,
                 "user_feature_dim": self.user_feature_dim,
+                "movie_feature_dim": self.movie_feature_dim,
             },
             path,
         )
@@ -286,3 +287,4 @@ class NCFFeatureProcessor:
         self.occupation_encoder = obj["occupation_encoder"]
         self.encoders_fitted = obj.get("encoders_fitted", False)
         self.user_feature_dim = obj.get("user_feature_dim")
+        self.movie_feature_dim = obj.get("movie_feature_dim")

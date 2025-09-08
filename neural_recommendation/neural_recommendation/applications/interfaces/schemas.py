@@ -55,13 +55,14 @@ class UserList(BaseModel):
 
 
 class MovieSchema(BaseModel):
+    id: int
     title: str
     genres: List[str]
-    embedding: Optional[List[float]] = None
 
 
 class MoviePublic(BaseModel):
     id: uuid.UUID
+    original_id: int
     title: str
     genres: List[str]
     model_config = ConfigDict(from_attributes=True)

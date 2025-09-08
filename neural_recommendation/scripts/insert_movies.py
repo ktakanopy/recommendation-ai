@@ -7,9 +7,9 @@ import requests
 
 
 def read_movies(path: str) -> List[dict]:
-    df = pd.read_csv(path, sep="::", header=None, engine="python", names=["movie_id", "title", "genres"])
+    df = pd.read_csv(path, sep="::", header=None, engine="python", names=["id", "title", "genres"])
     df["genres"] = df["genres"].fillna("").apply(lambda g: g.split("|") if g else [])
-    return df[["title", "genres"]].to_dict(orient="records")
+    return df[["id", "title", "genres"]].to_dict(orient="records")
 
 
 def insert_movies(base_url: str, movies: List[dict], dry_run: bool, limit: int, timeout: float) -> None:

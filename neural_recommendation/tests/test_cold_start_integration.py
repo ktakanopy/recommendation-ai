@@ -34,6 +34,7 @@ class TestColdStartIntegration(BaseIntegrationTest):
         settings = Mock(spec=MLModelSettings)
         settings.data_dir = "/tmp/test_data"
         settings.model_path = "/tmp/test_model.pth"
+        settings.feature_processor_path = "/tmp/test_feature_processor.joblib"
         return settings
 
     @pytest.fixture
@@ -161,7 +162,11 @@ class TestColdStartIntegration(BaseIntegrationTest):
 
     def create_recommendation_service(self, ml_settings, mock_model_repository, user_repository, rating_repository):
         """Create recommendation application service with mocked dependencies"""
-        return RecommendationApplicationService(ml_settings, mock_model_repository, user_repository, rating_repository)
+        with patch(
+            "neural_recommendation.applications.services.recommendation_application_service.NCFFeatureProcessor.load",
+            return_value=None,
+        ):
+            return RecommendationApplicationService(ml_settings, mock_model_repository, user_repository, rating_repository)
 
     @pytest.mark.asyncio
     async def test_cold_start_recommendations_with_database_user(

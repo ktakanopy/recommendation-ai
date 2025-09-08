@@ -2,8 +2,9 @@ import uuid
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, String, func
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry, relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 
 table_registry = registry()
 
@@ -44,5 +45,6 @@ class Movie:
     __tablename__ = "movies"
 
     id: Mapped[uuid.UUID] = mapped_column(init=False, primary_key=True, default=uuid.uuid4)
+    original_id: Mapped[int]
     title: Mapped[str]
-    genres: Mapped[str]
+    genres: Mapped[List[str]] = mapped_column(ARRAY(String))

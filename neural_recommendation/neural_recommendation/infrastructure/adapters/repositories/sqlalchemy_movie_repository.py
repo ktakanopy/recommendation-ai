@@ -15,11 +15,11 @@ class SQLAlchemyMovieRepository(MovieRepository):
         self.session = session
 
     def _to_domain(self, sql_movie: SQLMovie) -> DomainMovie:
-        genres_list = sql_movie.genres.split("|") if sql_movie.genres else []
         return DomainMovie(
-            id=sql_movie.id, 
+            id=sql_movie.id,
+            original_id=sql_movie.original_id,
             title=sql_movie.title, 
-            genres=genres_list
+            genres=sql_movie.genres,
         )
 
     def get_similar_movies(
@@ -53,10 +53,10 @@ class SQLAlchemyMovieRepository(MovieRepository):
         return [self._to_domain(movie) for movie in movies]
 
     async def create(self, movie: DomainMovie) -> DomainMovie:
-        genres_str = "|".join(movie.genres) if movie.genres else ""
         sql_movie = SQLMovie(
+            original_id=movie.original_id,
             title=movie.title,
-            genres=genres_str,
+            genres=movie.genres,
         )
         self.session.add(sql_movie)
         await self.session.commit()
@@ -72,7 +72,7 @@ class SQLAlchemyMovieRepository(MovieRepository):
             raise ValueError(f"Movie with id {movie.id} not found")
         
         sql_movie.title = movie.title
-        sql_movie.genres = "|".join(movie.genres) if movie.genres else ""
+        sql_movie.genres = movie.genres
         
         await self.session.commit()
         await self.session.refresh(sql_movie)

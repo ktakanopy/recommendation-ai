@@ -51,7 +51,11 @@ class TestRecommendationApplicationService:
 
     @pytest.fixture
     def ml_settings(self):
-        return Mock(spec=MLModelSettings)
+        settings = Mock(spec=MLModelSettings)
+        settings.data_dir = "/tmp/test_data"
+        settings.model_path = "/tmp/test_model.pth"
+        settings.feature_processor_path = "/tmp/test_feature_processor.joblib"
+        return settings
 
     @pytest.fixture
     def mock_domain_service(self):
@@ -89,7 +93,13 @@ class TestRecommendationApplicationService:
     @pytest.fixture
     def app_service(self, ml_settings, mock_model_repository, mock_user_repository, mock_rating_repository):
         """Create RecommendationApplicationService instance"""
-        return RecommendationApplicationService(ml_settings, mock_model_repository, mock_user_repository, mock_rating_repository)
+        with patch(
+            "neural_recommendation.applications.services.recommendation_application_service.NCFFeatureProcessor.load",
+            return_value=None,
+        ):
+            return RecommendationApplicationService(ml_settings, mock_model_repository, mock_user_repository, mock_rating_repository)
+
+
 
     @pytest.mark.asyncio
     async def test_generate_recommendations_cold_start_success(
