@@ -54,17 +54,20 @@ def compute_and_save_features(users_df, movies_df, device, output_path):
     print(f"Saving feature info to {output_path}")
     feature_info.save(output_path)
     settings = MLModelSettings()
-    processor.save(settings.feature_processor_path)
+    processor.save(settings.processed_data_dir, settings.feature_processor_path)
     return processor
 
 
 def precompute_and_save_candidates(train_df, val_df, movies_df, out_train, out_val, num_candidates):
     all_movie_ids = movies_df["movie_id"].astype(int).tolist()
-    gen = CandidateGenerator(train_ratings=train_df, movies=movies_df, all_movieIds=all_movie_ids)
+    gen = CandidateGenerator(train_ratings=train_df, movies=movies_df, all_movie_ids=all_movie_ids)
     train_candidates = gen.precompute_training_candidates(train_df, method="hybrid", num_candidates=num_candidates)
     val_candidates = gen.precompute_validation_candidates(
         val_df, train_df, method="hybrid", num_candidates=num_candidates
     )
+
+    settings = MLModelSettings()
+    gen.save(settings.processed_data_dir, settings.candidate_generator_path)
     os.makedirs(os.path.dirname(out_train), exist_ok=True)
     with open(out_train, "wb") as f:
         pickle.dump(train_candidates, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -130,6 +133,7 @@ def main():
         sep="::",
         header=None,
         engine="python",
+        encoding="latin-1",
     )
     ratings_df.columns = ["user_id", "movie_id", "rating", "timestamp"]
 
@@ -138,6 +142,7 @@ def main():
         sep="::",
         header=None,
         engine="python",
+        encoding="latin-1",
     )
     movies_df.columns = ["movie_id", "title", "genres"]
 
@@ -146,6 +151,7 @@ def main():
         sep="::",
         header=None,
         engine="python",
+        encoding="latin-1",
     )
     users_df.columns = ["user_id", "gender", "age", "occupation", "zip_code"]
 

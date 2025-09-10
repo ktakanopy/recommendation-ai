@@ -18,6 +18,7 @@ class Token(BaseModel):
 
 
 class RatingSchema(BaseModel):
+    user_id: int
     movie_id: uuid.UUID
     rating: float
     timestamp: Optional[datetime] = None

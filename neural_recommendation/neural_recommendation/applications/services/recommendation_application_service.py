@@ -10,6 +10,7 @@ from neural_recommendation.domain.ports.services.recommendation_application_serv
 )
 from neural_recommendation.domain.services.recommendation_service import RecommendationService
 from neural_recommendation.infrastructure.logging.logger import Logger
+from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
 
 logger = Logger.get_logger(__name__)
 
@@ -32,12 +33,12 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         model, feature_info = self._model_repository.load_model_and_features()
         # Initialize NCF feature processor
         feature_service = NCFFeatureProcessor()
-        feature_service.load(self.ml_settings.feature_processor_path)
+        feature_service.load(self.ml_settings.processed_data_dir, self.ml_settings.feature_processor_path)
 
-
+        self.candidate_generator = CandidateGenerator.load(self.ml_settings.processed_data_dir, self.ml_settings.candidate_generator_path)
         # Create domain service
         domain_service = RecommendationService(
-            model=model, feature_service=feature_service, feature_info=feature_info
+            model=model, feature_service=feature_service, feature_info=feature_info, candidate_generator=self.candidate_generator
         )
 
         logger.info(f"NCF recommendation service initialized with {len(feature_info.sentence_embeddings.title_to_idx)} movies")

@@ -12,9 +12,9 @@ class SQLAlchemyRatingRepository(RatingRepository):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def bulk_create(self, user_id: int, ratings: List[DomainRating]) -> None:
+    async def bulk_create(self, ratings: List[DomainRating]) -> None:
         for rating in ratings:
-            sql_rating = SQLRating(user_id=user_id, movie_id=rating.movie_id, rating=rating.rating)
+            sql_rating = SQLRating(user_id=rating.user_id, movie_id=rating.movie_id, rating=rating.rating)
             self.session.add(sql_rating)
         await self.session.commit()
 

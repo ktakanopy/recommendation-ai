@@ -17,7 +17,7 @@ logger = Logger.get_logger(__name__)
 class RecommendationService:
     """Domain service for generating movie recommendations using NCF model"""
 
-    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, feature_info: FeatureInfoDto):
+    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, feature_info: FeatureInfoDto, candidate_generator: CandidateGenerator):
         self.model = model
         self.feature_service = feature_service
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -28,18 +28,11 @@ class RecommendationService:
         # Movie ID to title mapping for quick lookup
         self.movie_id_to_title = {v: k for k, v in self.title_to_idx.items()}
 
-        # Initialize cold start components
-        self.candidate_generator = CandidateGenerator(
-            train_ratings=None,  # Could be loaded from data if available
-            movies=None,  # Could be loaded from data if available
-            all_movie_ids=list(self.title_to_idx.values()),
-        )
-
         self.cold_start_recommender = ColdStartRecommender(
             trained_model=model,
             feature_processor=feature_service,
-            candidate_generator=self.candidate_generator,
-            movies_df=None,  # Could be loaded from data if available
+            candidate_generator=candidate_generator,
+            movie_genres_dict=feature_info.sentence_embeddings.movies_genres_dict,
             liked_threshold=4.0,
         )
 

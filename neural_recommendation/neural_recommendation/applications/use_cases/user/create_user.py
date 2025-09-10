@@ -48,7 +48,7 @@ class CreateUserUseCase:
             id=created_user.id,
             username=created_user.username,
             email=created_user.email,
-            age=created_user.age if include_details else None,
-            gender=created_user.gender if include_details else None,
-            occupation=created_user.occupation if include_details else None,
+            age=created_user.age,
+            gender=created_user.gender,
+            occupation=created_user.occupation 
         )

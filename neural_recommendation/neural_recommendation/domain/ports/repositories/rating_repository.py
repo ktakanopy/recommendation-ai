@@ -6,7 +6,7 @@ from neural_recommendation.domain.models.rating import Rating
 
 class RatingRepository(ABC):
     @abstractmethod
-    async def bulk_create(self, user_id: int, ratings: List[Rating]) -> None:
+    async def bulk_create(self, ratings: List[Rating]) -> None:
         pass
 
     @abstractmethod

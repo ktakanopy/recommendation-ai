@@ -16,15 +16,15 @@ RatingRepositoryDep = Annotated[RatingRepository, Depends(get_rating_repository)
 CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 
-@router.post("/", status_code=HTTPStatus.CREATED, response_model=RatingPublic)
-async def create_rating(payload: RatingSchema, current_user: CurrentUserDep, rating_repository: RatingRepositoryDep):
+@router.post("/", status_code=HTTPStatus.CREATED, response_model=List[RatingPublic])
+async def create_rating(payload: List[RatingSchema], rating_repository: RatingRepositoryDep):
     use_case = CreateRatingUseCase(rating_repository)
-    return await use_case.execute(current_user.id, payload)
+    return await use_case.execute(payload)
 
-
-@router.get("/me", response_model=List[RatingPublic])
-async def list_my_ratings(current_user: CurrentUserDep, rating_repository: RatingRepositoryDep):
-    use_case = ListUserRatingsUseCase(rating_repository)
-    return await use_case.execute(current_user.id)
+# TODO: this listing should receive an id from the database not from the logged user
+# @router.get("/me", response_model=List[RatingPublic])
+# async def list_my_ratings(current_user: CurrentUserDep, rating_repository: RatingRepositoryDep):
+#     use_case = ListUserRatingsUseCase(rating_repository)
+#     return await use_case.execute(current_user.id)
 
 

@@ -28,7 +28,7 @@ class FeatureInfoDto:
             embedding_dim=sentence_embeddings_dict["embedding_dim"],
             title_to_idx=sentence_embeddings_dict["title_to_idx"],
             idx_to_title=sentence_embeddings_dict["idx_to_title"],
-            movies_genres_dict=sentence_embeddings_dict["movies_genres_dict"],
+            movies_genres_dict=sentence_embeddings_dict["movies_genres_dict"], # TODO: remove this as we won't need more
         )
 
         return cls(

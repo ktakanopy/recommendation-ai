@@ -1,7 +1,5 @@
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
-
-import pandas as pd
 import torch
 import torch.nn.functional as F
 
@@ -26,13 +24,13 @@ class ColdStartRecommender:
         trained_model: NCFModel,
         feature_processor: NCFFeatureProcessor,
         candidate_generator: CandidateGenerator,
-        movies_df: Optional[pd.DataFrame] = None,
+        movie_genres_dict: Optional[Dict[str, List[str]]] = None,
         liked_threshold: float = 4.0,
     ):
         self.model = trained_model
         self.feature_processor = feature_processor
         self.candidate_generator = candidate_generator
-        self.movies_df = movies_df
+        self.movie_genres_dict = movie_genres_dict
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.liked_threshold = liked_threshold
 
@@ -174,16 +172,18 @@ class ColdStartRecommender:
             user_similar_candidates = self.get_similar_user_candidates(
                 user_demographics, top_k=10, num_candidates=num_candidates // 3
             )
+            all_ids = getattr(self.candidate_generator, "all_movieIds", getattr(self.candidate_generator, "all_movie_ids", [])) # TODO: create a function inside candidate generator
+            available_items = set(all_ids) - set(liked_movies)
             popular_candidates = self.candidate_generator.generate_popularity_candidates(
                 user_id=-1,
                 num_candidates=num_candidates // 3,
-                user_available_items=set(liked_movies),
+                user_available_items=available_items,
             )
             user_genres = self.candidate_generator.get_genres_from_movies(liked_movies)
             content_candidates = self.candidate_generator.generate_content_candidates(
                 user_id=-1,
                 num_candidates=num_candidates // 3,
-                user_available_items=set(liked_movies),
+                user_available_items=available_items,
                 passed_user_genres=user_genres,
             )
             candidates.extend(user_similar_candidates)
@@ -221,7 +221,7 @@ class ColdStartRecommender:
 
         # Create user feature vector using FeatureProcessor
         try:
-            user_features = self.feature_processor.process_user_demographics(user_demographics)
+            user_features = self.feature_processor.process_user_demographics(user_demographics) # TODO: check if those are only features we need
             user_features = user_features.detach().clone().unsqueeze(0).to(self.device)  # Add batch dimension
         except Exception as e:
             logger.error(f"Error processing user demographics: {str(e)}")
@@ -233,7 +233,8 @@ class ColdStartRecommender:
             user_demographics,
             user_ratings,
             num_candidates=min(
-                200, len(self.candidate_generator.all_movie_ids) if self.candidate_generator.all_movie_ids else 200
+                200,
+                len(getattr(self.candidate_generator, "all_movieIds", getattr(self.candidate_generator, "all_movie_ids", [])))
             ),
         )
 
@@ -256,14 +257,7 @@ class ColdStartRecommender:
                     score = self.model(user_features, movie_features).item()
 
                     # Get movie title
-                    movie_title = f"Movie_{movie_id}"  # Default title
-                    if self.movies_df is not None:
-                        try:
-                            movie_row = self.movies_df[self.movies_df["movie_id"] == movie_id]
-                            if not movie_row.empty:
-                                movie_title = movie_row["title"].iloc[0]
-                        except Exception:
-                            pass  # Use default title
+                    movie_title = f"Movie_{movie_id}"
 
                     movie_scores.append((movie_id, movie_title, score))
 
@@ -293,73 +287,50 @@ class ColdStartRecommender:
             list: list of (movie_id, title, genres) tuples
         """
         logger.info(f"Getting {num_movies} onboarding movies")
-
-        # Get hybrid candidates from different genres for diversity
-        popular_movies = self.candidate_generator.generate_popularity_candidates(user_id=-1, num_candidates=100)
+        all_ids = getattr(self.candidate_generator, "all_movieIds", getattr(self.candidate_generator, "all_movie_ids", []))
+        available_items = set(all_ids)
+        popular_movies = self.candidate_generator.generate_popularity_candidates(user_id=-1, user_available_items=available_items, num_candidates=max(200, num_movies * 10))
 
         if not popular_movies:
             logger.warning("No popular movies available for onboarding")
             return []
 
-        # Group by genres to ensure diversity
-        genre_movies = {}
+        if hasattr(self.candidate_generator, "all_genres") and self.candidate_generator.all_genres:
+            genres = self.candidate_generator.all_genres
+        else:
+            genres = list({g for gs in self.candidate_generator.movie_to_genres.values() for g in gs})
+
         selected_movies = []
-
-        for movie_id in popular_movies:
-            if movie_id in self.candidate_generator.movie_to_genres:
-                movie_genres = self.candidate_generator.movie_to_genres[movie_id]
-                movie_title = f"Movie_{movie_id}"  # Default title
-                movie_genres_str = "|".join(movie_genres)
-
-                if self.movies_df is not None:
-                    try:
-                        movie_row = self.movies_df[self.movies_df["movie_id"] == movie_id]
-                        if not movie_row.empty:
-                            movie_title = movie_row["title"].iloc[0]
-                            movie_genres_str = movie_row["genres"].iloc[0]
-                    except Exception:
-                        pass  # Use defaults
-
-                # Add to genre groups
-                for genre in movie_genres:
-                    if genre not in genre_movies:
-                        genre_movies[genre] = []
-                    genre_movies[genre].append((movie_id, movie_title, movie_genres_str))
-
-        # Select diverse movies (one from each genre initially)
-        used_genres = set()
         used_movie_ids = set()
-        for genre, movies in genre_movies.items():
-            if len(selected_movies) < num_movies and genre not in used_genres:
-                # Find the first movie in this genre that hasn't been selected yet
-                for movie_tuple in movies:
-                    movie_id = movie_tuple[0]
-                    if movie_id not in used_movie_ids:
-                        selected_movies.append(movie_tuple)
-                        used_genres.add(genre)
-                        used_movie_ids.add(movie_id)
-                        break
 
-        # Fill remaining slots with most popular movies
-        for movie_id in popular_movies:
+        for genre in genres:
             if len(selected_movies) >= num_movies:
                 break
+            for movie_id in popular_movies:
+                if movie_id in used_movie_ids:
+                    continue
+                if movie_id in self.candidate_generator.movie_to_genres and genre in self.candidate_generator.movie_to_genres[movie_id]:
+                    movie_genres = self.candidate_generator.movie_to_genres[movie_id]
+                    movie_title = f"Movie_{movie_id}"
+                    movie_genres_str = "|".join(movie_genres)
+                    selected_movies.append((movie_id, movie_title, movie_genres_str))
+                    used_movie_ids.add(movie_id)
+                    break
 
-            if movie_id not in used_movie_ids:
-                movie_title = f"Movie_{movie_id}"
-                movie_genres_str = "Unknown"
-
-                if self.movies_df is not None:
-                    try:
-                        movie_row = self.movies_df[self.movies_df["movie_id"] == movie_id]
-                        if not movie_row.empty:
-                            movie_title = movie_row["title"].iloc[0]
-                            movie_genres_str = movie_row["genres"].iloc[0]
-                    except Exception:
-                        pass
-
-                movie_tuple = (movie_id, movie_title, movie_genres_str)
-                selected_movies.append(movie_tuple)
+        if len(selected_movies) < num_movies:
+            for movie_id in popular_movies:
+                if len(selected_movies) >= num_movies:
+                    break
+                if movie_id in used_movie_ids:
+                    continue
+                if movie_id in self.candidate_generator.movie_to_genres:
+                    movie_genres = self.candidate_generator.movie_to_genres[movie_id]
+                    movie_title = f"Movie_{movie_id}"
+                    movie_genres_str = "|".join(movie_genres)
+                    selected_movies.append((movie_id, movie_title, movie_genres_str))
+                else:
+                    movie_title = f"Movie_{movie_id}"
+                    selected_movies.append((movie_id, movie_title, "Unknown"))
                 used_movie_ids.add(movie_id)
 
         logger.info(f"Selected {len(selected_movies)} diverse onboarding movies")

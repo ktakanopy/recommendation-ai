@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 import torch
+import os
 import torch.nn.functional as F
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
@@ -276,8 +277,9 @@ class NCFFeatureProcessor:
 
         return torch.stack(batch_features).to(device)
 
-    def save(self, path: str) -> None:
-        with open(path, "wb") as f:
+    def save(self, dir_path: str, path: str) -> None:
+        joined_path = os.path.join(dir_path, path)
+        with open(joined_path, "wb") as f:
             pickle.dump({
                     "gender_encoder": self.gender_encoder,
                     "age_encoder": self.age_encoder,
@@ -291,8 +293,9 @@ class NCFFeatureProcessor:
                 f,
             )
 
-    def load(self, path: str) -> None:
-        with open(path, "rb") as f:
+    def load(self, dir_path: str, path: str) -> None:
+        joined_path = os.path.join(dir_path, path)
+        with open(joined_path, "rb") as f:
             obj = pickle.load(f)
             self.gender_encoder = obj["gender_encoder"]
             self.age_encoder = obj["age_encoder"]

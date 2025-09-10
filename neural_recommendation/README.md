@@ -2,6 +2,18 @@
 
 TODO: add model introduction, achictecture, etc here
 
+Prepare ml-1m movie lens
+
+Enter in the data/ folder and run
+
+```bash
+unzip ml-1m.zip
+```
+
+Install poetry shell
+```bash
+poetry self add poetry-plugin-shell
+```
 
 ## Running Application
 
@@ -23,3 +35,4 @@ poetry run task run
 ```bash
 poetry run task test
 ```
+
