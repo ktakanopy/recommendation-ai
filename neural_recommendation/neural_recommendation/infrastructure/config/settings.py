@@ -32,6 +32,7 @@ class MLModelSettings(BaseSettings):
     movie_features_cache_path: str = "movie_features_cache.pkl"
     feature_encoder_index_path: str = "feature_encoder.pkl"
     top_popular_movies_path: str = "top_popular_movies.pkl"
+    top_popular_movies_by_genres_path: str = "top_popular_movies_by_genres.pkl"
 
     data_dir: str = "data/ml-1m"
     movie_name: str = "movies.dat"

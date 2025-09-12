@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import uuid
 from pydantic import BaseModel
 from datetime import datetime

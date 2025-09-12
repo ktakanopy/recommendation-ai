@@ -17,3 +17,11 @@ class MovieFeaturesRepository(ABC):
     @abstractmethod
     def get_top_popular_movies(self, top_k: int) -> List[int]:
         pass
+
+    @abstractmethod
+    def get_all_genres(self) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_top_popular_movies_by_genres(self, genres: List[str], top_k: int) -> List[int]:
+        pass

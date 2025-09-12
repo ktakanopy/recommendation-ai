@@ -25,6 +25,7 @@ class CandidateGenerator:
         # Pre-compute global data structures
         self._precompute_popularity()
         self._precompute_movie_genres()
+        self._precompute_top_popular_movies_by_genres()
 
     def _precompute_popularity(self):
         """Pre-compute item popularity ranking"""
@@ -40,6 +41,10 @@ class CandidateGenerator:
     def save_popularity(self, dir_path: str, filepath: str):
         with open(os.path.join(dir_path, filepath), "wb") as f:
             pickle.dump(self.popular_items, f, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    def save_top_popular_movies_by_genres(self, dir_path: str, filepath: str):
+        with open(os.path.join(dir_path, filepath), "wb") as f:
+            pickle.dump(self.top_popular_movies_by_genre, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load_popularity(self, dir_path: str, filepath: str):
         with open(os.path.join(dir_path, filepath), "rb") as f:
@@ -52,6 +57,36 @@ class CandidateGenerator:
                 for genre in self.movie_to_genres[movie_id]:
                     genre_counts[genre] = genre_counts.get(genre, 0) + 1
         return genre_counts
+
+
+    def _precompute_top_popular_movies_by_genres(self):
+        """Pre-compute top popular movies by genres"""
+        genre_to_items = defaultdict(list)
+        if hasattr(self, "movie_to_genres") and self.movie_to_genres:
+            items_iter = self.movie_to_genres.items()
+        elif getattr(self, "movies", None) is not None:
+            temp = {}
+            for _, row in self.movies.iterrows():
+                genres = row["genres"].split("|") if isinstance(row["genres"], str) else []
+                temp[row["movie_id"]] = genres
+            items_iter = temp.items()
+        else:
+            self.top_popular_movies_by_genre = {}
+            return
+
+        get_popularity = self.item_popularity.get if hasattr(self, "item_popularity") else lambda _: 0
+
+        for movie_id, genres in items_iter:
+            popularity = int(get_popularity(movie_id, 0)) if callable(get_popularity) else 0
+            for genre in genres:
+                genre_to_items[genre].append((movie_id, popularity))
+
+        result = {}
+        for genre, items in genre_to_items.items():
+            items.sort(key=lambda x: x[1], reverse=True)
+            result[genre] = [movie_id for movie_id, _ in items]
+        self.top_popular_movies_by_genre = result
+
 
     @lru_cache(maxsize=1000)
     def get_available_items(self, user_id):

@@ -114,6 +114,7 @@ def get_movie_features_repository(
         index_path=ml_settings.movie_features_index_path,
         top_popular_movies_path=ml_settings.top_popular_movies_path,
         movie_features_cache_path=ml_settings.movie_features_cache_path,
+        top_popular_movies_by_genres_path=ml_settings.top_popular_movies_by_genres_path,
     )
 
 

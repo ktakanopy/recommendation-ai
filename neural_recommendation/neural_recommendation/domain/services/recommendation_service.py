@@ -1,9 +1,11 @@
+from collections import defaultdict
 from typing import Any, Dict, List
 
 from neural_recommendation.applications.services.candidate_generator_service import CandidateGeneratorService
 from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
 from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
+from neural_recommendation.domain.models.deep_learning.onboarding_movies import OnboardingMovie, OnboardingMoviesResult
 import torch
 
 from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import ColdStartRecommender
@@ -83,6 +85,15 @@ class RecommendationService:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
             raise e
 
-    def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
+    async def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
         """Get diverse movies for new user onboarding"""
-        pass
+        candidates = self.cold_start_recommender.get_onboarding_movies(num_movies=num_movies)
+        recommendations = defaultdict(list)
+        for genre, movie_ids in candidates.items():
+            for movie_id in movie_ids:
+                movie = await self.movie_repository.get_by_id(movie_id)
+                if not movie:
+                    logger.warning(f"Movie with id {movie_id} not found in movie repository")
+                    continue
+                recommendations[genre].append(OnboardingMovie(movie_id=movie_id, title=movie.title, genres=movie.genres))
+        return OnboardingMoviesResult(recommendations=recommendations)

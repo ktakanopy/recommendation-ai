@@ -71,6 +71,8 @@ def precompute_and_save_candidates(train_df, val_df, movies_df, out_train, out_v
     )
     settings = MLModelSettings()
     gen.save_popularity(settings.processed_data_dir, settings.top_popular_movies_path)
+    gen.save_top_popular_movies_by_genres(settings.processed_data_dir, settings.top_popular_movies_by_genres_path)
+
     gen.save(settings.processed_data_dir, settings.candidate_generator_path)
     os.makedirs(os.path.dirname(out_train), exist_ok=True)
     with open(out_train, "wb") as f:

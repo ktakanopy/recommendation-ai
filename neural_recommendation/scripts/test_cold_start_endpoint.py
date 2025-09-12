@@ -21,7 +21,6 @@ def create_user(
         "occupation": occupation,
     }
     r = requests.post(url, json=payload, timeout=timeout)
-
     return r.json()
 
 
@@ -54,6 +53,15 @@ def fetch_movies(base_url: str, limit: int, timeout: float) -> List[dict]:
         return r.json().get("movies", [])
     return []
 
+def fetch_onboarding_movies(base_url: str,  num_recommendations: int, timeout: float) -> List[dict]:
+    url = base_url.rstrip("/") + "/recommendations/onboarding-movies"
+    payload = {"num_recommendations": num_recommendations}
+    r = requests.get(url, json=payload, timeout=timeout)
+    print(r.json())
+    if r.status_code == 200:
+        return r.json().get("recommendations", [])
+    return []
+
 
 def create_rating(base_url: str, ratings: List[RatingSchema], timeout: float) -> bool:
     url = base_url.rstrip("/") + "/ratings/"
@@ -78,9 +86,13 @@ def main() -> None:
     parser.add_argument("--movies_fetch_limit", type=int, default=500)
     parser.add_argument("--password", type=str, default="password123")
     parser.add_argument("--timeout", type=float, default=10.0)
+    parser.add_argument("--num_movies", type=int, default=5)
     args = parser.parse_args()
 
-    movies = fetch_movies(args.base_url, args.movies_fetch_limit, args.timeout)
+    onboarding_movies_by_genres = fetch_onboarding_movies(args.base_url, args.num_movies, args.timeout)
+    movies = []
+    for _, movie_ids in onboarding_movies_by_genres.items():
+        movies.extend(movie_ids[:2])
     if not movies:
         print("No movies available to rate", file=sys.stderr)
         sys.exit(1)
@@ -97,15 +109,22 @@ def main() -> None:
         print("Created user:", created)
         try:
             user_id = created["id"]
-
             picks = random.sample(movies, k=min(args.ratings_per_user, len(movies)))
             ratings = [
-                RatingSchema(user_id=created["id"], movie_id=m["id"], rating=random.choice([4.0, 4.5, 5.0]))
+                RatingSchema(user_id=created["id"], movie_id=m["movie_id"], rating=random.choice([4.0, 4.5, 5.0]))
                 for m in picks
             ]
             print("** Creating ratings...")
             created_rating = create_rating(args.base_url, ratings, args.timeout)
             print("Created ratings:", created_rating)
+            print("Rated movies:")
+            for r, m in zip(ratings, picks):
+                genres = m.get("genres", [])
+                if isinstance(genres, list):
+                    genres_str = ", ".join(genres)
+                else:
+                    genres_str = str(genres)
+                print(f"- {m['title']} (id={m['movie_id']}) [{genres_str}]: {r.rating}")
             print("** Creating recommendations...")
 
             cs = recommend_cold_start(args.base_url, user_id, num_recommendations=10, timeout=args.timeout)

@@ -15,6 +15,7 @@ from neural_recommendation.domain.ports.repositories.feature_encoder_repository 
 from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
+from neural_recommendation.domain.models.deep_learning.onboarding_movies import OnboardingMoviesResult
 
 logger = Logger.get_logger(__name__)
 
@@ -87,3 +88,7 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
             user=user,
             num_recommendations=num_recommendations,
         )
+
+    async def get_onboarding_movies(self, num_movies: int = 10) -> OnboardingMoviesResult:
+        """Get onboarding movies for new user"""
+        return await self._domain_service.get_onboarding_movies(num_movies=num_movies)

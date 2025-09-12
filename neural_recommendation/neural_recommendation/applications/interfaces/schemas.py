@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -110,6 +110,10 @@ class NewUserRecommendationRequest(BaseModel):
     user_id: int  # ID of the created user
     num_recommendations: int = 10
 
+class GetOnboardingMoviesRequest(BaseModel):
+    """Request schema for onboarding movies"""
+    num_movies: int = 10
+
 
 class RecommendationResponse(BaseModel):
     """Response schema for recommendations"""
@@ -125,3 +129,16 @@ class RecommendationResultResponse(BaseModel):
 
     user_id: str
     recommendations: List[RecommendationResponse]
+
+
+class OnboardingMovieResponse(BaseModel):
+    """Response schema for onboarding movie"""
+
+    movie_id: int
+    title: str
+    genres: List[str]
+
+class OnboardingMoviesResultResponse(BaseModel):
+    """Response schema for onboarding movies results"""
+
+    recommendations: Dict[str, List[OnboardingMovieResponse]]

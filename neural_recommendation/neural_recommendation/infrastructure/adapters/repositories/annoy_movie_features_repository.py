@@ -8,15 +8,40 @@ from neural_recommendation.domain.exceptions import RepositoryError, NotFoundErr
 
 
 class AnnoyMovieFeaturesRepository(MovieFeaturesRepository):
-    def __init__(self, data_path: str, index_path: str, top_popular_movies_path: str, movie_features_cache_path: str):
+    def __init__(
+        self,
+        data_path: str,
+        index_path: str,
+        top_popular_movies_path: str,
+        movie_features_cache_path: str,
+        top_popular_movies_by_genres_path: str,
+    ):
         self.index_path = index_path
         self.data_path = data_path
         self.top_popular_movies_path = top_popular_movies_path
         self.movie_features_cache_path = movie_features_cache_path
+        self.top_popular_movies_by_genres_path = top_popular_movies_by_genres_path
 
         self.annoy_index = self.load()
         self.top_popular_movies = self.load_top_popular_movies()
         self.movie_features_cache = self.load_movie_features_cache()
+        self.top_popular_movies_by_genres = self.load_top_popular_movies_by_genres()
+    
+    def get_all_genres(self) -> List[str]:
+        return list(self.top_popular_movies_by_genres.keys())
+    
+    def get_top_popular_movies_by_genres(self, genres: List[str], top_k: int) -> Dict[str, List[int]]:
+        response = {}
+        for genre in genres:
+            response[genre] = self.top_popular_movies_by_genres[genre][:top_k]
+        return response
+
+    def load_top_popular_movies_by_genres(self) -> Dict[str, List[int]]:
+        try:
+            with open(os.path.join(self.data_path, self.top_popular_movies_by_genres_path), "rb") as f:
+                return pickle.load(f)
+        except Exception as e:
+            raise RepositoryError("Failed to load top popular movies by genres") from e
 
     def get_features(self, movie_id: int) -> torch.Tensor:
         try:
