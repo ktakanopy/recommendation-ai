@@ -1,6 +1,5 @@
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
-from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
@@ -10,7 +9,12 @@ from neural_recommendation.domain.ports.services.recommendation_application_serv
 )
 from neural_recommendation.domain.services.recommendation_service import RecommendationService
 from neural_recommendation.infrastructure.logging.logger import Logger
-from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
+from neural_recommendation.applications.services.candidate_generator_service import CandidateGeneratorService
+from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
+from neural_recommendation.domain.ports.repositories.feature_encoder_repository import FeatureEncoderRepository
+from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
+from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
+from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
 
 logger = Logger.get_logger(__name__)
 
@@ -18,11 +22,25 @@ logger = Logger.get_logger(__name__)
 class RecommendationApplicationService(RecommendationApplicationServicePort):
     """Application service for NCF-based recommendations"""
 
-    def __init__(self, ml_settings: MLModelSettings, model_repository: ModelInferenceRepository, user_repository: UserRepository, rating_repository: RatingRepository):
+    def __init__(
+        self,
+        ml_settings: MLModelSettings,
+        model_repository: ModelInferenceRepository,
+        movie_repository: MovieRepository,
+        user_repository: UserRepository,
+        rating_repository: RatingRepository,
+        feature_encoder_repository: FeatureEncoderRepository,
+        user_features_repository: UserFeaturesRepository,
+        movie_features_repository: MovieFeaturesRepository,
+    ):
         self.ml_settings = ml_settings
         self._model_repository = model_repository
         self.user_repository = user_repository
         self.rating_repository = rating_repository
+        self.feature_encoder_repository = feature_encoder_repository
+        self.user_features_repository = user_features_repository
+        self.movie_repository = movie_repository
+        self.movie_features_repository = movie_features_repository
         self._domain_service = self._get_domain_service()
 
     def _get_domain_service(self) -> RecommendationService:
@@ -30,18 +48,23 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         logger.info("Initializing NCF-based recommendation service")
 
         # Load NCF model
-        model, feature_info = self._model_repository.load_model_and_features()
+        model = self._model_repository.load_model()
         # Initialize NCF feature processor
-        feature_service = NCFFeatureProcessor()
-        feature_service.load(self.ml_settings.processed_data_dir, self.ml_settings.feature_processor_path)
+        feature_service = NCFFeatureService(feature_encoder_repository=self.feature_encoder_repository)
 
-        self.candidate_generator = CandidateGenerator.load(self.ml_settings.processed_data_dir, self.ml_settings.candidate_generator_path)
+        self.candidate_generator = CandidateGeneratorService(
+            movie_features_repository=self.movie_features_repository,
+            user_features_repository=self.user_features_repository,
+            feature_service=feature_service,
+        )
         # Create domain service
         domain_service = RecommendationService(
-            model=model, feature_service=feature_service, feature_info=feature_info, candidate_generator=self.candidate_generator
+            model=model,
+            feature_service=feature_service,
+            candidate_generator=self.candidate_generator,
+            movie_repository=self.movie_repository,
+            movie_features_repository=self.movie_features_repository,
         )
-
-        logger.info(f"NCF recommendation service initialized with {len(feature_info.sentence_embeddings.title_to_idx)} movies")
 
         return domain_service
 
@@ -60,7 +83,7 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         user.ratings = ratings
 
         # Use the specialized cold start method with user data from database
-        return self._domain_service.generate_recommendations_cold_start(
+        return await self._domain_service.generate_recommendations_cold_start(
             user=user,
             num_recommendations=num_recommendations,
         )

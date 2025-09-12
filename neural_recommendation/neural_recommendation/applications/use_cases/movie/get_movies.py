@@ -9,9 +9,6 @@ class GetMoviesUseCase:
     async def execute(self, filter_page: FilterPage) -> MovieList:
         movies = await self.movie_repository.get_all(offset=filter_page.offset, limit=filter_page.limit)
 
-        movie_publics = [
-            MoviePublic(id=movie.id, title=movie.title, genres=movie.genres, original_id=movie.original_id)
-            for movie in movies
-        ]
+        movie_publics = [MoviePublic(id=movie.id, title=movie.title, genres=movie.genres) for movie in movies]
 
         return MovieList(movies=movie_publics)

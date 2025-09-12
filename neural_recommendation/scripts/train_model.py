@@ -7,14 +7,11 @@ import pandas as pd
 import torch
 
 
-from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
+from candidate_generator import CandidateGenerator
 from trainer import NCFTrainer
 
-from neural_recommendation.applications.interfaces.dtos.feature_info_dto import (
-    FeatureInfoDto,
-    SentenceEmbeddingsDto,
-)
-from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor as FeatureProcessor
+
+from ncf_feature_processor import NCFFeatureProcessor as FeatureProcessor
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
@@ -25,48 +22,55 @@ def compute_and_save_features(users_df, movies_df, device, output_path):
     processor = FeatureProcessor(debug=False)
     processor.prepare_user_features(users_df)
     movie_prep_features = processor.prepare_movie_features(movies_df, device=device)
+    processor.build_movie_annoy()
+    processor.build_user_annoy()
 
-    movie_embeddings = movie_prep_features["movie_embeddings"]
-    title_to_idx = movie_prep_features["title_to_idx"]
-    idx_to_title = movie_prep_features["idx_to_title"]
-    movie_genres_dict = movie_prep_features["movies_genres_dict"]
+    processor.save_movie_annoy(output_path, "movie_annoy.index")
+    processor.save_user_annoy(output_path, "user_annoy.index")
+    processor.save_movie_info_features_cache(output_path, "movie_info_features_cache.pkl")
+    processor.save_encoders(output_path, "feature_encoder.pkl")
 
-    age_mean = float(users_df["age"].mean())
-    age_std = float(users_df["age"].std()) or 1.0
+    # movie_embeddings = movie_prep_features["movie_embeddings"]
+    # title_to_idx = movie_prep_features["title_to_idx"]
+    # idx_to_title = movie_prep_features["idx_to_title"]
+    # movie_genres_dict = movie_prep_features["movies_genres_dict"]
 
-    embedding_matrix = movie_embeddings.to(device)
-    embedding_dim = int(embedding_matrix.shape[1])
+    # age_mean = float(users_df["age"].mean())
+    # age_std = float(users_df["age"].std()) or 1.0
 
-    sentence_embeddings = SentenceEmbeddingsDto(
-        embedding_matrix=embedding_matrix,
-        embedding_dim=embedding_dim,
-        title_to_idx=title_to_idx,
-        idx_to_title=idx_to_title,
-        movies_genres_dict=movie_genres_dict,
-    )
+    # embedding_matrix = movie_embeddings.to(device)
+    # embedding_dim = int(embedding_matrix.shape[1])
 
-    feature_info = FeatureInfoDto(
-        age_mean=age_mean,
-        age_std=age_std,
-        sentence_embeddings=sentence_embeddings,
-    )
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    print(f"Saving feature info to {output_path}")
-    feature_info.save(output_path)
+    # sentence_embeddings = SentenceEmbeddingsDto(
+    #     embedding_matrix=embedding_matrix,
+    #     embedding_dim=embedding_dim,
+    #     title_to_idx=title_to_idx,
+    #     idx_to_title=idx_to_title,
+    #     movies_genres_dict=movie_genres_dict,
+    # )
+
+    # feature_info = FeatureInfoDto(
+    #     age_mean=age_mean,
+    #     age_std=age_std,
+    #     sentence_embeddings=sentence_embeddings,
+    # )
+    # feature_info.save(output_path, "preprocessed_features.pkl")
     settings = MLModelSettings()
-    processor.save(settings.processed_data_dir, settings.feature_processor_path)
+    processor.save_movie_features_cache(settings.processed_data_dir, settings.movie_features_cache_path)
     return processor
 
 
-def precompute_and_save_candidates(train_df, val_df, movies_df, out_train, out_val, num_candidates):
+def precompute_and_save_candidates(train_df, val_df, movies_df, out_train, out_val, num_candidates, processor):
     all_movie_ids = movies_df["movie_id"].astype(int).tolist()
-    gen = CandidateGenerator(train_ratings=train_df, movies=movies_df, all_movie_ids=all_movie_ids)
+    gen = CandidateGenerator(
+        train_ratings=train_df, movies=movies_df, all_movie_ids=all_movie_ids, feature_processor=processor
+    )
     train_candidates = gen.precompute_training_candidates(train_df, method="hybrid", num_candidates=num_candidates)
     val_candidates = gen.precompute_validation_candidates(
         val_df, train_df, method="hybrid", num_candidates=num_candidates
     )
-
     settings = MLModelSettings()
+    gen.save_popularity(settings.processed_data_dir, settings.top_popular_movies_path)
     gen.save(settings.processed_data_dir, settings.candidate_generator_path)
     os.makedirs(os.path.dirname(out_train), exist_ok=True)
     with open(out_train, "wb") as f:
@@ -99,7 +103,7 @@ def split_data(ratings_df):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--features_out", type=str, default="data/processed_data/preprocessed_features.pkl")
+    parser.add_argument("--features_out", type=str, default="data/processed_data/")
     parser.add_argument(
         "--train_candidates_out",
         type=str,
@@ -120,7 +124,7 @@ def main():
     parser.add_argument(
         "--use_existing_candidates",
         action="store_true",
-        default=True,
+        default=False,
         help="If set, load precomputed train/val candidates from the given output paths when they exist",
     )
     args = parser.parse_args()
@@ -159,11 +163,7 @@ def main():
 
     processor = compute_and_save_features(users_df, movies_df, device=str(device), output_path=args.features_out)
 
-    if (
-        args.use_existing_candidates
-        and os.path.exists(args.train_candidates_out)
-        and os.path.exists(args.val_candidates_out)
-    ):
+    if args.use_existing_candidates:
         with open(args.train_candidates_out, "rb") as f:
             train_candidates = pickle.load(f)
         with open(args.val_candidates_out, "rb") as f:
@@ -176,6 +176,7 @@ def main():
             args.train_candidates_out,
             args.val_candidates_out,
             args.num_candidates,
+            processor,
         )
 
     model = NCFModel(

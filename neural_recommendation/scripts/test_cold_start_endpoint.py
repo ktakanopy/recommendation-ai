@@ -8,7 +8,9 @@ import requests
 from neural_recommendation.applications.interfaces.schemas import RatingSchema
 
 
-def create_user(base_url: str, username: str, email: str, password: str, age: int, gender: str, occupation: int, timeout: float) -> tuple[bool, Optional[int]]:
+def create_user(
+    base_url: str, username: str, email: str, password: str, age: int, gender: str, occupation: int, timeout: float
+) -> tuple[bool, Optional[int]]:
     url = base_url.rstrip("/") + "/users/"
     payload = {
         "username": username,
@@ -19,7 +21,7 @@ def create_user(base_url: str, username: str, email: str, password: str, age: in
         "occupation": occupation,
     }
     r = requests.post(url, json=payload, timeout=timeout)
-    
+
     return r.json()
 
 
@@ -65,9 +67,7 @@ def recommend_cold_start(base_url: str, user_id: int, num_recommendations: int, 
     url = base_url.rstrip("/") + "/recommendations/cold-start"
     payload = {"user_id": user_id, "num_recommendations": num_recommendations}
     r = requests.post(url, json=payload, timeout=timeout)
-    if r.status_code == 200:
-        return r.json()
-    return None
+    return r.json()
 
 
 def main() -> None:
@@ -93,15 +93,16 @@ def main() -> None:
         gender = random.choice(["M", "F"])
         occupation = random.randint(0, 20)
         print("** Creating user...")
-        created = create_user(
-            args.base_url, username, email, args.password, age, gender, occupation, args.timeout
-        )
+        created = create_user(args.base_url, username, email, args.password, age, gender, occupation, args.timeout)
         print("Created user:", created)
         try:
             user_id = created["id"]
 
             picks = random.sample(movies, k=min(args.ratings_per_user, len(movies)))
-            ratings = [RatingSchema(user_id=created["id"], movie_id=m["id"], rating=random.choice([4.0, 4.5, 5.0])) for m in picks]
+            ratings = [
+                RatingSchema(user_id=created["id"], movie_id=m["id"], rating=random.choice([4.0, 4.5, 5.0]))
+                for m in picks
+            ]
             print("** Creating ratings...")
             created_rating = create_rating(args.base_url, ratings, args.timeout)
             print("Created ratings:", created_rating)
@@ -113,15 +114,6 @@ def main() -> None:
         except Exception as e:
             print("Error:", e)
 
-        # print(cs)
-        # print("--------------------------------")
-        # for movie in cs["recommendations"]:
-        #     print(movie) 
-        # print("--------------------------------")
-
-     
 
 if __name__ == "__main__":
     main()
-
-

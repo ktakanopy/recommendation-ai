@@ -23,7 +23,8 @@ dependencies = [
     "matplotlib (>=3.10.3,<4.0.0)",
     "requests (>=2.32.4,<3.0.0)",
     "sentence-transformers (>=5.0.0,<6.0.0)",
-    "pgvector (>=0.3.0,<1.0.0)"
+    "pgvector (>=0.3.0,<1.0.0)",
+    "annoy (>=1.17.3,<2.0.0)"
 ]
 
 

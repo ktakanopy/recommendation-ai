@@ -20,5 +20,3 @@ class ListUserRatingsUseCase:
             )
             for r in ratings
         ]
-
-

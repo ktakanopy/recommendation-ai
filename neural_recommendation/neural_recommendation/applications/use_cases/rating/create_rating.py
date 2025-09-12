@@ -12,20 +12,24 @@ class CreateRatingUseCase:
         self.rating_repository = rating_repository
 
     async def execute(self, ratings: List[RatingSchema]) -> List[RatingPublic]:
-        domains = [DomainRating(
-            id=uuid.uuid4(),
-            user_id=rating.user_id,
-            movie_id=rating.movie_id,
-            rating=rating.rating,
-            timestamp=rating.timestamp or datetime.now(),
-        ) for rating in ratings]
+        domains = [
+            DomainRating(
+                id=uuid.uuid4(),
+                user_id=rating.user_id,
+                movie_id=rating.movie_id,
+                rating=rating.rating,
+                timestamp=rating.timestamp or datetime.now(),
+            )
+            for rating in ratings
+        ]
         await self.rating_repository.bulk_create(domains)
-        return [RatingPublic(
-            id=domain.id,
-            user_id=domain.user_id,
-            movie_id=domain.movie_id,
-            rating=domain.rating,
-            timestamp=domain.timestamp,
-        ) for domain in domains]
-
-
+        return [
+            RatingPublic(
+                id=domain.id,
+                user_id=domain.user_id,
+                movie_id=domain.movie_id,
+                rating=domain.rating,
+                timestamp=domain.timestamp,
+            )
+            for domain in domains
+        ]

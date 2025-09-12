@@ -1,11 +1,12 @@
 from typing import Any, Dict, List
 
-from neural_recommendation.applications.interfaces.dtos.feature_info_dto import FeatureInfoDto
+from neural_recommendation.applications.services.candidate_generator_service import CandidateGeneratorService
+from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
+from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
+from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 import torch
 
-from neural_recommendation.applications.use_cases.deep_learning.candidate_generator import CandidateGenerator
 from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import ColdStartRecommender
-from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import NCFFeatureProcessor
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
 from neural_recommendation.domain.models.user import User
@@ -17,26 +18,28 @@ logger = Logger.get_logger(__name__)
 class RecommendationService:
     """Domain service for generating movie recommendations using NCF model"""
 
-    def __init__(self, model: NCFModel, feature_service: NCFFeatureProcessor, feature_info: FeatureInfoDto, candidate_generator: CandidateGenerator):
+    def __init__(
+        self,
+        model: NCFModel,
+        feature_service: NCFFeatureService,
+        candidate_generator: CandidateGeneratorService,
+        movie_repository: MovieRepository,
+        movie_features_repository: MovieFeaturesRepository,
+    ):
         self.model = model
         self.feature_service = feature_service
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.eval()
-        self.title_to_idx = feature_info.sentence_embeddings.title_to_idx
-        self.idx_to_title = feature_info.sentence_embeddings.idx_to_title
-        self.all_movie_titles = list(feature_info.sentence_embeddings.title_to_idx.keys())
-        # Movie ID to title mapping for quick lookup
-        self.movie_id_to_title = {v: k for k, v in self.title_to_idx.items()}
-
         self.cold_start_recommender = ColdStartRecommender(
             trained_model=model,
-            feature_processor=feature_service,
+            feature_service=feature_service,
             candidate_generator=candidate_generator,
-            movie_genres_dict=feature_info.sentence_embeddings.movies_genres_dict,
             liked_threshold=4.0,
+            movie_features_repository=movie_features_repository,
         )
+        self.movie_repository = movie_repository
 
-    def generate_recommendations_cold_start(
+    async def generate_recommendations_cold_start(
         self,
         user: User,
         num_recommendations: int = 10,
@@ -58,21 +61,23 @@ class RecommendationService:
             cold_start_results = self.cold_start_recommender.recommend_for_new_user(
                 user_demographics=user_demographics, user_ratings=user_ratings, num_recommendations=num_recommendations
             )
-
             # Convert to Recommendation objects
             recommendations = []
-            for i, (movie_id, movie_title, score) in enumerate(cold_start_results):
+            for i, (movie_id, score) in enumerate(cold_start_results):
+                movie = await self.movie_repository.get_by_id(movie_id)
+                if not movie:
+                    logger.warning(f"Movie with id {movie_id} not found in movie repository")
+                    continue
+
                 recommendation = Recommendation(
                     movie_id=movie_id,
-                    title=movie_title,
+                    title=movie.title,
+                    genres=movie.genres,
                     similarity_score=float(score),
-                    genres="Unknown",  # Could be enhanced with actual genres
                 )
                 recommendations.append(recommendation)
 
-            return RecommendationResult(
-                user_id=str(user.id), recommendations=recommendations, total_available_movies=len(self.all_movie_titles)
-            )
+            return RecommendationResult(user_id=str(user.id), recommendations=recommendations)
 
         except Exception as e:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
@@ -80,85 +85,4 @@ class RecommendationService:
 
     def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
         """Get diverse movies for new user onboarding"""
-        logger.info(f"Getting {num_movies} onboarding movies")
-
-        try:
-            onboarding_results = self.cold_start_recommender.get_onboarding_movies(num_movies)
-
-            # Convert to dictionary format
-            movies = []
-            for movie_id, title, genres in onboarding_results:
-                movies.append({"movie_id": movie_id, "title": title, "genres": genres})
-
-            return movies
-
-        except Exception as e:
-            logger.error(f"Error getting onboarding movies: {str(e)}")
-            # Fallback to simple movie list
-            movie_ids = list(self.title_to_idx.values())[:num_movies]
-            return [
-                {
-                    "movie_id": movie_id,
-                    "title": self.movie_id_to_title.get(movie_id, f"Movie_{movie_id}"),
-                    "genres": "Unknown",
-                }
-                for movie_id in movie_ids
-            ]
-
-    def _calculate_interaction_probabilities(
-        self, user_features: torch.Tensor, movie_ids: List[int], batch_size: int = 100
-    ) -> List[float]:
-        """Calculate interaction probabilities between user and movies using NCF model"""
-        probabilities = []
-        user_features = user_features.to(self.device)
-
-        # Process movies in batches
-        for i in range(0, len(movie_ids), batch_size):
-            batch_movie_ids = movie_ids[i : i + batch_size]
-
-            # Get movie features for this batch
-            batch_movie_features = []
-            for movie_id in batch_movie_ids:
-                movie_features = self.feature_service.get_movie_features(movie_id)
-                batch_movie_features.append(movie_features)
-
-            if not batch_movie_features:
-                continue
-
-            # Stack movie features and move to device
-            batch_movie_tensor = torch.stack(batch_movie_features).to(self.device)
-
-            # Repeat user features for batch size
-            batch_size_actual = len(batch_movie_features)
-            batch_user_features = user_features.unsqueeze(0).repeat(batch_size_actual, 1)
-
-            # Get predictions from NCF model
-            with torch.no_grad():
-                batch_predictions = self.model.predict_batch(batch_user_features, batch_movie_tensor)
-                probabilities.extend(batch_predictions.cpu().numpy().tolist())
-
-        return probabilities
-
-    def _create_top_recommendations(
-        self, movie_titles: List[str], movie_ids: List[int], probabilities: List[float], num_recommendations: int
-    ) -> List[Recommendation]:
-        """Create top recommendations from interaction probabilities"""
-
-        # Combine movies with their probabilities
-        movie_probability_pairs = list(zip(movie_titles, movie_ids, probabilities))
-
-        # Sort by probability (descending)
-        movie_probability_pairs.sort(key=lambda x: x[2], reverse=True)
-
-        # Create recommendation objects
-        recommendations = []
-        for i, (title, movie_id, probability) in enumerate(movie_probability_pairs[:num_recommendations]):
-            recommendation = Recommendation(
-                movie_id=movie_id,
-                title=title,
-                similarity_score=float(probability),
-                genres="Unknown",  # Could be enhanced to get actual genres
-            )
-            recommendations.append(recommendation)
-
-        return recommendations
+        pass

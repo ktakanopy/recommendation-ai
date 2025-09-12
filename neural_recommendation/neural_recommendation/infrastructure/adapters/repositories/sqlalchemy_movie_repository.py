@@ -17,24 +17,11 @@ class SQLAlchemyMovieRepository(MovieRepository):
     def _to_domain(self, sql_movie: SQLMovie) -> DomainMovie:
         return DomainMovie(
             id=sql_movie.id,
-            original_id=sql_movie.original_id,
-            title=sql_movie.title, 
+            title=sql_movie.title,
             genres=sql_movie.genres,
         )
 
-    def get_similar_movies(
-        self, query_embedding: List[float], user_watched_movies: List[uuid.UUID], num_recommendations: int
-    ) -> List[DomainMovie]:
-        query = (
-            self.session.query(SQLMovie, SQLMovie.embedding.cosine_distance(query_embedding))
-            .where(SQLMovie.id.notin_(user_watched_movies))
-            .order_by(SQLMovie.embedding.cosine_distance(SQLMovie.embedding))
-            .limit(num_recommendations)
-        )
-        result = query.all()
-        return [self._to_domain(movie) for movie, _ in result]
-
-    async def get_by_id(self, movie_id: uuid.UUID) -> Optional[DomainMovie]:
+    async def get_by_id(self, movie_id: int) -> Optional[DomainMovie]:
         query = select(SQLMovie).where(SQLMovie.id == movie_id)
         result = await self.session.execute(query)
         movie = result.scalar_one_or_none()
@@ -54,7 +41,6 @@ class SQLAlchemyMovieRepository(MovieRepository):
 
     async def create(self, movie: DomainMovie) -> DomainMovie:
         sql_movie = SQLMovie(
-            original_id=movie.original_id,
             title=movie.title,
             genres=movie.genres,
         )
@@ -67,13 +53,13 @@ class SQLAlchemyMovieRepository(MovieRepository):
         query = select(SQLMovie).where(SQLMovie.id == movie.id)
         result = await self.session.execute(query)
         sql_movie = result.scalar_one_or_none()
-        
+
         if not sql_movie:
             raise ValueError(f"Movie with id {movie.id} not found")
-        
+
         sql_movie.title = movie.title
         sql_movie.genres = movie.genres
-        
+
         await self.session.commit()
         await self.session.refresh(sql_movie)
         return self._to_domain(sql_movie)
@@ -82,10 +68,10 @@ class SQLAlchemyMovieRepository(MovieRepository):
         query = select(SQLMovie).where(SQLMovie.id == movie_id)
         result = await self.session.execute(query)
         movie = result.scalar_one_or_none()
-        
+
         if not movie:
             return False
-        
+
         await self.session.delete(movie)
         await self.session.commit()
         return True

@@ -27,6 +27,12 @@ class MLModelSettings(BaseSettings):
     processed_data_dir: str = "data/processed_data"
     feature_processor_path: str = "feature_processor.joblib"
     candidate_generator_path: str = "candidate_gen.pkl"
+    user_features_index_path: str = "user_annoy.index"
+    movie_features_index_path: str = "movie_annoy.index"
+    movie_features_cache_path: str = "movie_features_cache.pkl"
+    feature_encoder_index_path: str = "feature_encoder.pkl"
+    top_popular_movies_path: str = "top_popular_movies.pkl"
+
     data_dir: str = "data/ml-1m"
     movie_name: str = "movies.dat"
     candidate_gen_name: str = "candidate_gen.pkl"

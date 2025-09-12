@@ -1,11 +1,10 @@
 import uuid
 from dataclasses import dataclass, field
 from typing import List
+from pydantic import BaseModel
 
 
-@dataclass
-class Movie:
-    id: uuid.UUID
-    original_id: int
+class Movie(BaseModel):
+    id: int
     title: str
     genres: List[str] = field(default_factory=list)

@@ -12,4 +12,3 @@ class RatingRepository(ABC):
     @abstractmethod
     async def get_by_user_id(self, user_id: int) -> List[Rating]:
         pass
-

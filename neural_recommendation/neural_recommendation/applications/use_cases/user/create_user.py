@@ -50,5 +50,5 @@ class CreateUserUseCase:
             email=created_user.email,
             age=created_user.age,
             gender=created_user.gender,
-            occupation=created_user.occupation 
+            occupation=created_user.occupation,
         )

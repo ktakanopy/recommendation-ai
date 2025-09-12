@@ -44,7 +44,6 @@ class User:
 class Movie:
     __tablename__ = "movies"
 
-    id: Mapped[uuid.UUID] = mapped_column(init=False, primary_key=True, default=uuid.uuid4)
-    original_id: Mapped[int]
+    id: Mapped[int] = mapped_column(init=False, primary_key=True)
     title: Mapped[str]
     genres: Mapped[List[str]] = mapped_column(ARRAY(String))

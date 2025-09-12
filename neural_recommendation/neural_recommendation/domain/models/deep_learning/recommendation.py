@@ -1,14 +1,14 @@
-from dataclasses import dataclass
 from typing import List
+import uuid
+from pydantic import BaseModel
+from datetime import datetime
 
-
-@dataclass
-class Recommendation:
+class Recommendation(BaseModel):
     """Domain model representing a movie recommendation"""
 
     movie_id: int
     title: str
-    genres: str
+    genres: List[str]
     similarity_score: float
 
     @property
@@ -17,15 +17,8 @@ class Recommendation:
         return self.similarity_score * 100
 
 
-@dataclass
-class RecommendationResult:
+class RecommendationResult(BaseModel):
     """Domain model for recommendation results"""
 
     user_id: str
     recommendations: List[Recommendation]
-    total_available_movies: int
-
-    @property
-    def recommendation_count(self) -> int:
-        """Get number of recommendations"""
-        return len(self.recommendations)

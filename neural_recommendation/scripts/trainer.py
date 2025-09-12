@@ -10,7 +10,7 @@ from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from neural_recommendation.applications.use_cases.deep_learning.ncf_feature_processor import (
+from ncf_feature_processor import (
     NCFFeatureProcessor as FeatureProcessor,
 )
 

@@ -31,5 +31,3 @@ class SQLAlchemyRatingRepository(RatingRepository):
             )
             for row in rows
         ]
-
-

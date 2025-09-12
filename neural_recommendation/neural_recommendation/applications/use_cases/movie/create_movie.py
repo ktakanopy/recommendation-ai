@@ -14,8 +14,8 @@ class CreateMovieUseCase:
         if existing_movie:
             raise ValueError(f"Movie with title '{movie_data.title}' already exists")
 
-        movie = Movie(id=uuid.uuid4(), original_id=movie_data.id, title=movie_data.title, genres=movie_data.genres)
+        movie = Movie(id=movie_data.id, title=movie_data.title, genres=movie_data.genres)
 
         created_movie = await self.movie_repository.create(movie)
 
-        return MoviePublic(id=created_movie.id, original_id=movie_data.id, title=created_movie.title, genres=created_movie.genres)
+        return MoviePublic(id=created_movie.id, title=created_movie.title, genres=created_movie.genres)

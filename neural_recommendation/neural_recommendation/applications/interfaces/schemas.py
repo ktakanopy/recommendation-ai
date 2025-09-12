@@ -19,7 +19,7 @@ class Token(BaseModel):
 
 class RatingSchema(BaseModel):
     user_id: int
-    movie_id: uuid.UUID
+    movie_id: int
     rating: float
     timestamp: Optional[datetime] = None
 
@@ -62,8 +62,7 @@ class MovieSchema(BaseModel):
 
 
 class MoviePublic(BaseModel):
-    id: uuid.UUID
-    original_id: int
+    id: int
     title: str
     genres: List[str]
     model_config = ConfigDict(from_attributes=True)
@@ -80,7 +79,49 @@ class MovieList(BaseModel):
 class RatingPublic(BaseModel):
     id: uuid.UUID
     user_id: int
-    movie_id: uuid.UUID
+    movie_id: int
     rating: float
     timestamp: datetime
     model_config = ConfigDict(from_attributes=True)
+
+# TODO: check if this schema should be in dto folder
+class RatingRequest(BaseModel):
+    """Request schema for rating data"""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    movie_id: uuid.UUID
+    timestamp: datetime
+    rating: float
+
+
+class RecommendationRequest(BaseModel):
+    """Request schema for existing user recommendations"""
+
+    user_id: str
+    user_age: float = 25.0
+    gender: str = "M"
+    num_recommendations: int = 10
+
+
+class NewUserRecommendationRequest(BaseModel):
+    """Request schema for new user recommendations"""
+
+    user_id: int  # ID of the created user
+    num_recommendations: int = 10
+
+
+class RecommendationResponse(BaseModel):
+    """Response schema for recommendations"""
+
+    movie_id: int
+    title: str
+    genres: List[str]
+    similarity_score: float
+
+
+class RecommendationResultResponse(BaseModel):
+    """Response schema for recommendation results"""
+
+    user_id: str
+    recommendations: List[RecommendationResponse]

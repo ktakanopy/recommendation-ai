@@ -1,12 +1,11 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
 
-@dataclass
-class ModelConfig:
+class ModelConfig(BaseModel):
     # Required fields (no defaults) - must come first
     num_epochs: int
     embedding_size: int

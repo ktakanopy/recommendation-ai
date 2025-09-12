@@ -8,9 +8,9 @@ class GetMovieUseCase:
     def __init__(self, movie_repository: MovieRepository):
         self.movie_repository = movie_repository
 
-    async def execute(self, movie_id: uuid.UUID) -> MoviePublic:
+    async def execute(self, movie_id: int) -> MoviePublic:
         movie = await self.movie_repository.get_by_id(movie_id)
         if not movie:
             raise ValueError(f"Movie with id {movie_id} not found")
 
-        return MoviePublic(id=movie.id, title=movie.title, genres=movie.genres, original_id=movie.original_id)
+        return MoviePublic(id=movie.id, title=movie.title, genres=movie.genres)

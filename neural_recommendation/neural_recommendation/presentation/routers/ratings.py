@@ -21,10 +21,9 @@ async def create_rating(payload: List[RatingSchema], rating_repository: RatingRe
     use_case = CreateRatingUseCase(rating_repository)
     return await use_case.execute(payload)
 
+
 # TODO: this listing should receive an id from the database not from the logged user
 # @router.get("/me", response_model=List[RatingPublic])
 # async def list_my_ratings(current_user: CurrentUserDep, rating_repository: RatingRepositoryDep):
 #     use_case = ListUserRatingsUseCase(rating_repository)
 #     return await use_case.execute(current_user.id)
-
-

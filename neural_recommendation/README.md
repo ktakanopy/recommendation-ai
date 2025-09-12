@@ -1,5 +1,10 @@
 # Neural Recommendation
 
+Pre-requisits
+clang
+
+
+
 TODO: add model introduction, achictecture, etc here
 
 Prepare ml-1m movie lens

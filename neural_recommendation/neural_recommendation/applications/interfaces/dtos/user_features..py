@@ -1,8 +1,6 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
-
-@dataclass
-class UserFeaturesDto:
+class UserFeaturesDto(BaseModel):
     user_id: int
     timestamp: float
     user_age: float

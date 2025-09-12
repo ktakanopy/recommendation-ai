@@ -5,6 +5,7 @@ from neural_recommendation.domain.models.deep_learning.recommendation import Rec
 
 class RecommendationApplicationServicePort(ABC):
     """Port for recommendation generation operations"""
+
     @abstractmethod
     async def generate_recommendations_cold_start(
         self, user_id: int, num_recommendations: int = 10
