@@ -26,10 +26,10 @@ class AnnoyMovieFeaturesRepository(MovieFeaturesRepository):
         self.top_popular_movies = self.load_top_popular_movies()
         self.movie_features_cache = self.load_movie_features_cache()
         self.top_popular_movies_by_genres = self.load_top_popular_movies_by_genres()
-    
+
     def get_all_genres(self) -> List[str]:
         return list(self.top_popular_movies_by_genres.keys())
-    
+
     def get_top_popular_movies_by_genres(self, genres: List[str], top_k: int) -> Dict[str, List[int]]:
         response = {}
         for genre in genres:

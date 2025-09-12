@@ -29,8 +29,10 @@ class AnnoyIndexError(DomainError):
 class ConfigurationError(DomainError):
     pass
 
+
 class ColdStartRecommendationError(DomainError):
     pass
+
 
 class CandidateGeneratorError(DomainError):
     pass

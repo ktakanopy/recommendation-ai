@@ -14,7 +14,10 @@ logger = Logger.get_logger(__name__)
 # global data structures for fast candidate generation
 class CandidateGeneratorService:
     def __init__(
-        self, movie_features_repository: MovieFeaturesRepository, user_features_repository: UserFeaturesRepository, feature_service: NCFFeatureService
+        self,
+        movie_features_repository: MovieFeaturesRepository,
+        user_features_repository: UserFeaturesRepository,
+        feature_service: NCFFeatureService,
     ):
         self.movie_features_repository = movie_features_repository
         self.user_features_repository = user_features_repository

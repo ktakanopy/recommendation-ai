@@ -17,7 +17,7 @@ class Rating:
 
     id: Mapped[uuid.UUID] = mapped_column(init=False, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    movie_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("movies.id"))
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id"))
     rating: Mapped[float]
     timestamp: Mapped[datetime] = mapped_column(init=False, server_default=func.now())
 

@@ -1,4 +1,3 @@
-import uuid
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
@@ -7,7 +6,7 @@ from neural_recommendation.domain.models.movie import Movie
 
 class MovieRepository(ABC):
     @abstractmethod
-    async def get_by_id(self, movie_id: uuid.UUID) -> Optional[Movie]:
+    async def get_by_id(self, movie_id: int) -> Optional[Movie]:
         pass
 
     @abstractmethod
@@ -27,5 +26,5 @@ class MovieRepository(ABC):
         pass
 
     @abstractmethod
-    async def delete(self, movie_id: uuid.UUID) -> bool:
+    async def delete(self, movie_id: int) -> bool:
         pass

@@ -12,7 +12,9 @@ from neural_recommendation.applications.use_cases.deep_learning.cold_start_recom
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.models.deep_learning.recommendation import Recommendation, RecommendationResult
 from neural_recommendation.domain.models.user import User
-from neural_recommendation.infrastructure.logging.logger import Logger
+from neural_recommendation.infrastructure.logging.logger import (
+    Logger,
+)  # TODO: use the logger from the application layer
 
 logger = Logger.get_logger(__name__)
 
@@ -57,6 +59,8 @@ class RecommendationService:
         if user.ratings:
             user_ratings = [(rating.movie_id, rating.rating) for rating in user.ratings]
             logger.info(f"User has {len(user_ratings)} existing ratings")
+        else:
+            raise ValueError("User has no ratings")
 
         # Use cold start recommender
         try:
@@ -95,5 +99,7 @@ class RecommendationService:
                 if not movie:
                     logger.warning(f"Movie with id {movie_id} not found in movie repository")
                     continue
-                recommendations[genre].append(OnboardingMovie(movie_id=movie_id, title=movie.title, genres=movie.genres))
+                recommendations[genre].append(
+                    OnboardingMovie(movie_id=movie_id, title=movie.title, genres=movie.genres)
+                )
         return OnboardingMoviesResult(recommendations=recommendations)

@@ -41,7 +41,7 @@ class CandidateGenerator:
     def save_popularity(self, dir_path: str, filepath: str):
         with open(os.path.join(dir_path, filepath), "wb") as f:
             pickle.dump(self.popular_items, f, protocol=pickle.HIGHEST_PROTOCOL)
-    
+
     def save_top_popular_movies_by_genres(self, dir_path: str, filepath: str):
         with open(os.path.join(dir_path, filepath), "wb") as f:
             pickle.dump(self.top_popular_movies_by_genre, f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -57,7 +57,6 @@ class CandidateGenerator:
                 for genre in self.movie_to_genres[movie_id]:
                     genre_counts[genre] = genre_counts.get(genre, 0) + 1
         return genre_counts
-
 
     def _precompute_top_popular_movies_by_genres(self):
         """Pre-compute top popular movies by genres"""
@@ -86,7 +85,6 @@ class CandidateGenerator:
             items.sort(key=lambda x: x[1], reverse=True)
             result[genre] = [movie_id for movie_id, _ in items]
         self.top_popular_movies_by_genre = result
-
 
     @lru_cache(maxsize=1000)
     def get_available_items(self, user_id):

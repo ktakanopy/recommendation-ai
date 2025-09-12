@@ -48,7 +48,7 @@ class ColdStartRecommender:
         user_demographics: Dict[str, Any],
         user_ratings: List[Tuple[int, float]],
         num_recommendations: int = 10,
-    ) -> List[Tuple[int, str, float]]:
+    ):
         """
         Generate recommendations for a new user
 
@@ -113,13 +113,14 @@ class ColdStartRecommender:
         except Exception as e:
             logger.error(f"Error generating cold start recommendations: {str(e)}")
             raise ColdStartRecommendationError("Failed to generate cold start recommendations") from e
-        
-    
+
     def get_onboarding_movies(self, num_movies: int = 10) -> Dict[str, List[int]]:
         """Get onboarding movies for new user"""
         try:
             all_genres = self.movie_features_repository.get_all_genres()
-            candidate_ids = self.movie_features_repository.get_top_popular_movies_by_genres(all_genres, top_k=num_movies)
+            candidate_ids = self.movie_features_repository.get_top_popular_movies_by_genres(
+                all_genres, top_k=num_movies
+            )
             return candidate_ids
         except Exception as e:
             logger.error(f"Error getting onboarding movies: {str(e)}")

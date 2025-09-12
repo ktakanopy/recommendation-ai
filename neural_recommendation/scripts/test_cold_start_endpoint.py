@@ -53,7 +53,8 @@ def fetch_movies(base_url: str, limit: int, timeout: float) -> List[dict]:
         return r.json().get("movies", [])
     return []
 
-def fetch_onboarding_movies(base_url: str,  num_recommendations: int, timeout: float) -> List[dict]:
+
+def fetch_onboarding_movies(base_url: str, num_recommendations: int, timeout: float) -> List[dict]:
     url = base_url.rstrip("/") + "/recommendations/onboarding-movies"
     payload = {"num_recommendations": num_recommendations}
     r = requests.get(url, json=payload, timeout=timeout)

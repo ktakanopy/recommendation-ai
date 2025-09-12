@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class Recommendation(BaseModel):
     """Domain model representing a movie recommendation"""
 

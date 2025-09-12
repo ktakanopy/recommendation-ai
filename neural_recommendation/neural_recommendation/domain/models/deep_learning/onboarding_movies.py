@@ -1,6 +1,7 @@
 from typing import Dict, List
 from pydantic import BaseModel
 
+
 class OnboardingMovie(BaseModel):
     """Domain model representing a movie recommendation"""
 

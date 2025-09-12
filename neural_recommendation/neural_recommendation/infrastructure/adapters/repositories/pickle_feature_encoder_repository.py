@@ -11,6 +11,7 @@ from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
 
+
 class PickleFeatureEncoderRepository(FeatureEncoderRepository):
     def __init__(self, data_path: str, encoder_path: str):
         self.data_path = data_path

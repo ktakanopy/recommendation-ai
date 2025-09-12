@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-# presentation layer dtos
+# TODO: move all of them to DTO folder
 
 
 class FilterPage(BaseModel):
@@ -84,13 +84,14 @@ class RatingPublic(BaseModel):
     timestamp: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
 # TODO: check if this schema should be in dto folder
 class RatingRequest(BaseModel):
     """Request schema for rating data"""
 
     id: uuid.UUID
-    user_id: uuid.UUID
-    movie_id: uuid.UUID
+    user_id: int
+    movie_id: int
     timestamp: datetime
     rating: float
 
@@ -110,8 +111,10 @@ class NewUserRecommendationRequest(BaseModel):
     user_id: int  # ID of the created user
     num_recommendations: int = 10
 
+
 class GetOnboardingMoviesRequest(BaseModel):
     """Request schema for onboarding movies"""
+
     num_movies: int = 10
 
 
@@ -137,6 +140,7 @@ class OnboardingMovieResponse(BaseModel):
     movie_id: int
     title: str
     genres: List[str]
+
 
 class OnboardingMoviesResultResponse(BaseModel):
     """Response schema for onboarding movies results"""

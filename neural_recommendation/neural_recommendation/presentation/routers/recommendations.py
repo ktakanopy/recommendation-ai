@@ -3,7 +3,12 @@ from datetime import datetime
 from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
-from neural_recommendation.applications.interfaces.schemas import GetOnboardingMoviesRequest, NewUserRecommendationRequest, OnboardingMoviesResultResponse, RecommendationResultResponse
+from neural_recommendation.applications.interfaces.schemas import (
+    GetOnboardingMoviesRequest,
+    NewUserRecommendationRequest,
+    OnboardingMoviesResultResponse,
+    RecommendationResultResponse,
+)
 from pydantic import BaseModel
 
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
@@ -15,8 +20,6 @@ from neural_recommendation.infrastructure.logging.logger import Logger
 logger = Logger.get_logger(__name__)
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
-
-
 
 
 @router.post("/cold-start", response_model=RecommendationResultResponse)
@@ -35,6 +38,7 @@ async def get_recommendations_cold_start(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating cold start recommendations: {str(e)}")
+
 
 @router.get("/onboarding-movies", response_model=OnboardingMoviesResultResponse)
 async def get_onboarding_movies(

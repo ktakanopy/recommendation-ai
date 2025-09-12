@@ -1,8 +1,7 @@
-from dataclasses import field
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-
+from pydantic import Field
 from neural_recommendation.domain.models.rating import Rating
 
 
@@ -15,7 +14,7 @@ class User(BaseModel):
     occupation: Optional[int] = None
     id: Optional[int] = None
     created_at: Optional[datetime] = None
-    ratings: Optional[List[Rating]] = field(default_factory=list)
+    ratings: Optional[List[Rating]] = Field(default_factory=list)
 
     def __post_init__(self):
         if self.created_at is None:
