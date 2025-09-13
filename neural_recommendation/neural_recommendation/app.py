@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import FastAPI
 
-from neural_recommendation.applications.interfaces.schemas import Message
+from neural_recommendation.applications.interfaces.dtos.message import Message
 from neural_recommendation.infrastructure.logging.logger import setup_logging
 from neural_recommendation.presentation.routers import auth, recommendations, users, ratings, movies
 

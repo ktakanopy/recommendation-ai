@@ -4,9 +4,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from neural_recommendation.applications.interfaces.schemas import (
-    FilterPage,
-    Message,
+from neural_recommendation.applications.interfaces.dtos.filter_page import FilterPage
+from neural_recommendation.applications.interfaces.dtos.message import Message
+from neural_recommendation.applications.interfaces.dtos.movie import (
     MovieList,
     MoviePublic,
     MovieSchema,

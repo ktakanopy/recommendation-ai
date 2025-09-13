@@ -2,7 +2,7 @@ from typing import List
 import uuid
 from datetime import datetime
 
-from neural_recommendation.applications.interfaces.schemas import RatingPublic, RatingSchema
+from neural_recommendation.applications.interfaces.dtos.rating import RatingPublic, RatingSchema
 from neural_recommendation.domain.models.rating import Rating as DomainRating
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
-from neural_recommendation.applications.interfaces.schemas import Token
+from neural_recommendation.applications.interfaces.dtos.auth import Token
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.infrastructure.config.dependencies import get_auth_service, get_user_repository

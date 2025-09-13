@@ -3,7 +3,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from neural_recommendation.applications.interfaces.schemas import FilterPage, Message, UserList, UserPublic, UserSchema
+from neural_recommendation.applications.interfaces.dtos.filter_page import FilterPage
+from neural_recommendation.applications.interfaces.dtos.message import Message
+from neural_recommendation.applications.interfaces.dtos.user import (
+    UserList,
+    UserPublic,
+    UserSchema,
+)
 from neural_recommendation.applications.use_cases.user.create_user import CreateUserUseCase
 from neural_recommendation.applications.use_cases.user.delete_user import DeleteUserUseCase
 from neural_recommendation.applications.use_cases.user.get_users import GetUsersUseCase

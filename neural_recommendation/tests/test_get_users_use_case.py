@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from neural_recommendation.applications.interfaces.schemas import FilterPage, UserList
+from neural_recommendation.applications.interfaces.dtos.filter_page import FilterPage
+from neural_recommendation.applications.interfaces.dtos.user import UserList
 from neural_recommendation.applications.use_cases.user.get_users import GetUsersUseCase
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository

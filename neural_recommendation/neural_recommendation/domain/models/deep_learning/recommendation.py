@@ -3,14 +3,13 @@ import uuid
 from pydantic import BaseModel
 from datetime import datetime
 
-
 class Recommendation(BaseModel):
     """Domain model representing a movie recommendation"""
 
     movie_id: int
     title: str
     genres: List[str]
-    similarity_score: float
+    similarity_score: Optional[float] = None
 
     @property
     def similarity_percentage(self) -> float:

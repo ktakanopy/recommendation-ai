@@ -1,6 +1,6 @@
 import pytest
 
-from neural_recommendation.applications.interfaces.schemas import UserPublic, UserSchema
+from neural_recommendation.applications.interfaces.dtos.user import UserPublic, UserSchema
 from neural_recommendation.applications.use_cases.user.create_user import CreateUserUseCase
 
 from .factories import user_factory

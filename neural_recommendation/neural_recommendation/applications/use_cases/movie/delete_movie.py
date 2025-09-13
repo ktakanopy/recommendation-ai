@@ -1,6 +1,6 @@
 import uuid
 
-from neural_recommendation.applications.interfaces.schemas import Message
+from neural_recommendation.applications.interfaces.dtos.message import Message
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 
 

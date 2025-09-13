@@ -1,4 +1,5 @@
-from neural_recommendation.applications.interfaces.schemas import FilterPage, MovieList, MoviePublic
+from neural_recommendation.applications.interfaces.dtos.filter_page import FilterPage
+from neural_recommendation.applications.interfaces.dtos.movie import MovieList, MoviePublic
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 
 

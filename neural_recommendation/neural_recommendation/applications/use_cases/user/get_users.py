@@ -1,4 +1,5 @@
-from neural_recommendation.applications.interfaces.schemas import FilterPage, UserList, UserPublic
+from neural_recommendation.applications.interfaces.dtos.filter_page import FilterPage
+from neural_recommendation.applications.interfaces.dtos.user import UserList, UserPublic
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 
 

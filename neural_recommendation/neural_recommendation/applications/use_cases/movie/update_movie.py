@@ -1,6 +1,6 @@
 import uuid
 
-from neural_recommendation.applications.interfaces.schemas import MoviePublic, MovieSchema
+from neural_recommendation.applications.interfaces.dtos.movie import MoviePublic, MovieSchema
 from neural_recommendation.domain.models.movie import Movie
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 

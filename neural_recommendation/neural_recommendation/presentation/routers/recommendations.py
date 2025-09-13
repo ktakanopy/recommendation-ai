@@ -1,16 +1,13 @@
-import uuid
-from datetime import datetime
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from neural_recommendation.applications.interfaces.schemas import (
+
+from neural_recommendation.applications.interfaces.dtos.recommendation import (
     GetOnboardingMoviesRequest,
     NewUserRecommendationRequest,
     OnboardingMoviesResultResponse,
     RecommendationResultResponse,
 )
-from pydantic import BaseModel
-
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
 )
