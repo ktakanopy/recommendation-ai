@@ -1,10 +1,6 @@
 import torch
 from torch import nn
 
-from neural_recommendation.infrastructure.logging.logger import Logger
-
-logger = Logger.get_logger(__name__)
-
 
 class NCFModel(nn.Module):
     """Optimized Neural Collaborative Filtering (NCF) with Features and Smart Negative Sampling

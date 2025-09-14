@@ -16,8 +16,6 @@ from neural_recommendation.domain.ports.services.logger import LoggerPort
 
 
 class RecommendationService:
-    """Domain service for generating movie recommendations using NCF model"""
-
     def __init__(
         self,
         model: NCFModel,
@@ -48,13 +46,10 @@ class RecommendationService:
         user: User,
         num_recommendations: int = 10,
     ) -> RecommendationResult:
-        """Generate recommendations for a new user using cold start approach"""
         self.logger.info(f"Generating cold start recommendations for user: {user.username} (ID: {user.id})")
 
-        # Prepare user demographics from User object
         user_demographics = {"gender": user.gender, "age": user.age, "occupation": user.occupation}
 
-        # Convert user ratings to tuples for cold start recommender
         user_ratings = []
         if user.ratings:
             user_ratings = [(rating.movie_id, rating.rating) for rating in user.ratings]
@@ -62,14 +57,12 @@ class RecommendationService:
         else:
             self.logger.warning("User has no ratings, cold start recommender will use default values.")
 
-        # Use cold start recommender
         try:
             cold_start_results = self.cold_start_recommender.recommend_for_new_user(
                 user_demographics=user_demographics, user_ratings=user_ratings, num_recommendations=num_recommendations
             )
-            # Convert to Recommendation objects
             recommendations = []
-            for i, (movie_id, score) in enumerate(cold_start_results):
+            for movie_id, score in cold_start_results:
                 movie = await self.movie_repository.get_by_id(movie_id)
                 if not movie:
                     self.logger.warning(f"Movie with id {movie_id} not found in movie repository")
@@ -90,7 +83,6 @@ class RecommendationService:
             raise e
 
     async def get_onboarding_movies(self, num_movies: int = 10) -> List[Dict[str, Any]]:
-        """Get diverse movies for new user onboarding"""
         candidates = self.cold_start_recommender.get_onboarding_movies(num_movies=num_movies)
         recommendations = defaultdict(list)
         for genre, movie_ids in candidates.items():
@@ -103,3 +95,5 @@ class RecommendationService:
                     OnboardingMovie(movie_id=movie_id, title=movie.title, genres=movie.genres)
                 )
         return OnboardingMoviesResult(recommendations=recommendations)
+
+

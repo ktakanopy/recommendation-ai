@@ -12,7 +12,7 @@ from neural_recommendation.domain.ports.repositories.user_repository import User
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
 )
-from neural_recommendation.domain.services.recommendation_service import RecommendationService
+from neural_recommendation.applications.services.recommendation_service import RecommendationService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 from neural_recommendation.domain.ports.services.logger import LoggerPort
 
