@@ -11,6 +11,7 @@ from neural_recommendation.applications.interfaces.dtos.user import (
     UserSchema,
 )
 from neural_recommendation.applications.use_cases.user.create_user import CreateUserUseCase
+from neural_recommendation.applications.use_cases.user.delete_all_users import DeleteAllUsersUseCase
 from neural_recommendation.applications.use_cases.user.delete_user import DeleteUserUseCase
 from neural_recommendation.applications.use_cases.user.get_users import GetUsersUseCase
 from neural_recommendation.applications.use_cases.user.update_user import UpdateUserUseCase
@@ -81,3 +82,9 @@ async def delete_user(user_id: int, current_user: CurrentUserDep, user_repositor
         raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Not enough permissions")
     except ValueError as e:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=str(e))
+
+
+@router.delete("/", response_model=Message)
+async def delete_all_users(user_repository: UserRepositoryDep):
+    use_case = DeleteAllUsersUseCase(user_repository)
+    return await use_case.execute()

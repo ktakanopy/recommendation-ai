@@ -41,3 +41,7 @@ class UserRepository(ABC):
     @abstractmethod
     async def delete(self, user_id: int) -> bool:
         pass
+
+    @abstractmethod
+    async def delete_all(self) -> int:
+        pass

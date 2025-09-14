@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
 
 from neural_recommendation.domain.models.rating import Rating
 from neural_recommendation.domain.models.user import User as DomainUser
@@ -133,3 +134,9 @@ class SQLAlchemyUserRepository(UserRepository):
         await self.session.delete(sql_user)
         await self.session.commit()
         return True
+
+    async def delete_all(self) -> int:
+        await self.session.execute(delete(SQLRating))
+        result_users = await self.session.execute(delete(SQLUser))
+        await self.session.commit()
+        return result_users.rowcount or 0
