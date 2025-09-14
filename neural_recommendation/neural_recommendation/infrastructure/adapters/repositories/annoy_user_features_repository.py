@@ -1,9 +1,11 @@
-from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
-from annoy import AnnoyIndex
-import torch
 import os
 import pickle
-from neural_recommendation.domain.exceptions import RepositoryError, NotFoundError, AnnoyIndexError
+
+import torch
+from annoy import AnnoyIndex
+
+from neural_recommendation.domain.exceptions import AnnoyIndexError, NotFoundError, RepositoryError
+from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
 from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)

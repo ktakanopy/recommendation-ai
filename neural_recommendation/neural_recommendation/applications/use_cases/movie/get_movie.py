@@ -1,5 +1,3 @@
-import uuid
-
 from neural_recommendation.applications.interfaces.dtos.movie import MoviePublic
 from neural_recommendation.domain.ports.repositories.movie_repository import MovieRepository
 

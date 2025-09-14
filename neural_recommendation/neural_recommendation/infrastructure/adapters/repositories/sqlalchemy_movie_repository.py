@@ -10,7 +10,6 @@ from neural_recommendation.infrastructure.persistence.models import Movie as SQL
 
 
 class SQLAlchemyMovieRepository(MovieRepository):
-    # TODO: implement the crud in the endpoints
     def __init__(self, session: AsyncSession):
         self.session = session
 

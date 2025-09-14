@@ -1,10 +1,12 @@
-from typing import Dict, List
-from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
-from annoy import AnnoyIndex
-import torch
 import os
 import pickle
-from neural_recommendation.domain.exceptions import RepositoryError, NotFoundError, AnnoyIndexError
+from typing import Dict, List
+
+import torch
+from annoy import AnnoyIndex
+
+from neural_recommendation.domain.exceptions import AnnoyIndexError, NotFoundError, RepositoryError
+from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
 
 
 class AnnoyMovieFeaturesRepository(MovieFeaturesRepository):

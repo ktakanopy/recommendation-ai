@@ -1,7 +1,8 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
-from pydantic import Field
+
+from pydantic import BaseModel, Field
+
 from neural_recommendation.domain.models.rating import Rating
 
 

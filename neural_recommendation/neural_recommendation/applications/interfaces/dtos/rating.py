@@ -1,7 +1,9 @@
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 class RatingSchema(BaseModel):
     user_id: int

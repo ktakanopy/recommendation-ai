@@ -1,17 +1,17 @@
+import os
 import pickle
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
 import torch
-import os
 import torch.nn.functional as F
+from annoy import AnnoyIndex
 from sentence_transformers import SentenceTransformer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-from annoy import AnnoyIndex
 
-from neural_recommendation.infrastructure.logging.logger import Logger
 from neural_recommendation.domain.exceptions import AnnoyIndexError, FeatureProcessingError
+from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
 

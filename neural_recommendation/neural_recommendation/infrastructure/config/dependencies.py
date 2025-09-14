@@ -2,9 +2,6 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from neural_recommendation.infrastructure.adapters.repositories.pickle_feature_encoder_repository import (
-    PickleFeatureEncoderRepository,
-)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from neural_recommendation.applications.services.recommendation_application_service import (
@@ -34,6 +31,9 @@ from neural_recommendation.infrastructure.adapters.repositories.annoy_user_featu
 from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
     ModelInferenceManagerAdapter,
 )
+from neural_recommendation.infrastructure.adapters.repositories.pickle_feature_encoder_repository import (
+    PickleFeatureEncoderRepository,
+)
 from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_movie_repository import (
     SQLAlchemyMovieRepository,
 )
@@ -46,8 +46,12 @@ from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_
 from neural_recommendation.infrastructure.adapters.services.jwt_auth_service import JWTAuthService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings, Settings
 from neural_recommendation.infrastructure.persistence.database import get_session
+from neural_recommendation.infrastructure.logging.std_logger_adapter import StdLoggerAdapter
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+def get_logger() -> LoggerPort:
+    return StdLoggerAdapter(__name__)
 
 
 def get_settings() -> Settings:
@@ -143,6 +147,7 @@ def get_recommendation_service(
     user_features_repository: Annotated[UserFeaturesRepository, Depends(get_user_features_repository)],
     movie_repository: Annotated[MovieRepository, Depends(get_movie_repository)],
     feature_encoder_repository: Annotated[FeatureEncoderRepository, Depends(get_feature_encoder_repository)],
+    logger: Annotated[LoggerPort, Depends(get_logger)],
 ) -> RecommendationApplicationServicePort:
     return RecommendationApplicationService(
         ml_settings=ml_settings,
@@ -153,4 +158,5 @@ def get_recommendation_service(
         feature_encoder_repository=feature_encoder_repository,
         movie_features_repository=movie_features_repository,
         user_features_repository=user_features_repository,
+        logger=logger,
     )

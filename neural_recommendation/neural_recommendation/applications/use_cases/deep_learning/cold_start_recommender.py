@@ -1,21 +1,15 @@
-from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
-import torch.nn.functional as F
 
 from neural_recommendation.applications.services.candidate_generator_service import CandidateGeneratorService
 from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
 from neural_recommendation.domain.exceptions import (
     ColdStartRecommendationError,
-    FeatureProcessingError,
-    ValidationError,
 )
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
-from neural_recommendation.infrastructure.logging.logger import Logger
-
-logger = Logger.get_logger(__name__)
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 
 
 class ColdStartRecommender:
@@ -32,6 +26,7 @@ class ColdStartRecommender:
         movie_features_repository: MovieFeaturesRepository,
         feature_service: NCFFeatureService,
         candidate_generator: CandidateGeneratorService,
+        logger: LoggerPort,
         liked_threshold: float = 4.0,
         num_candidates: int = 100,
     ):
@@ -42,6 +37,7 @@ class ColdStartRecommender:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.liked_threshold = liked_threshold
         self.num_candidates = num_candidates
+        self.logger = logger
 
     def recommend_for_new_user(
         self,
@@ -66,7 +62,7 @@ class ColdStartRecommender:
             user_features = torch.tensor(user_features, dtype=torch.float32)
             user_features = user_features.detach().clone().unsqueeze(0).to(self.device)
         except Exception as e:
-            logger.error(f"Error processing user demographics: {str(e)}")
+            self.logger.error(f"Error processing user demographics: {str(e)}")
             raise e
 
         candidates = self.candidate_generator.generate_candidates(
@@ -77,7 +73,7 @@ class ColdStartRecommender:
         )
 
         if not candidates:
-            logger.warning("No candidates generated for cold start recommendation")
+            self.logger.warning("No candidates generated for cold start recommendation")
             return []
 
         # Score candidates using the NCF model
@@ -99,7 +95,7 @@ class ColdStartRecommender:
                         movie_scores.append((movie_id, score))
 
                     except Exception as e:
-                        logger.warning(f"Error processing movie {movie_id}: {str(e)}")
+                        self.logger.warning(f"Error processing movie {movie_id}: {str(e)}")
                         continue
 
             # Sort by predicted score and return top recommendations
@@ -111,7 +107,7 @@ class ColdStartRecommender:
 
             return movie_scores[:num_recommendations]
         except Exception as e:
-            logger.error(f"Error generating cold start recommendations: {str(e)}")
+            self.logger.error(f"Error generating cold start recommendations: {str(e)}")
             raise ColdStartRecommendationError("Failed to generate cold start recommendations") from e
 
     def get_onboarding_movies(self, num_movies: int = 10) -> Dict[str, List[int]]:
@@ -123,5 +119,5 @@ class ColdStartRecommender:
             )
             return candidate_ids
         except Exception as e:
-            logger.error(f"Error getting onboarding movies: {str(e)}")
+            self.logger.error(f"Error getting onboarding movies: {str(e)}")
             raise ColdStartRecommendationError(f"Failed to get onboarding movies: {str(e)}")

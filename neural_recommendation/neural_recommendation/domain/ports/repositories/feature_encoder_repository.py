@@ -1,7 +1,8 @@
 # domain/ports/repositories/feature_encoder_repository.py
-from typing import Tuple
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from abc import ABC, abstractmethod
+from typing import Tuple
+
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 
 class FeatureEncoderRepository(ABC):

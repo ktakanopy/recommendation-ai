@@ -4,8 +4,7 @@ import sys
 from typing import List, Optional
 
 import requests
-
-from neural_recommendation.applications.interfaces.schemas import RatingSchema
+from neural_recommendation.applications.interfaces.dtos.rating import RatingSchema
 
 
 def create_user(

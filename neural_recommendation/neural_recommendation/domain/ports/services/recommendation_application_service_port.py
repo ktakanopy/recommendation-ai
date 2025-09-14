@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 from neural_recommendation.domain.models.deep_learning.onboarding_movies import OnboardingMoviesResult
+from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 
 
 class RecommendationApplicationServicePort(ABC):

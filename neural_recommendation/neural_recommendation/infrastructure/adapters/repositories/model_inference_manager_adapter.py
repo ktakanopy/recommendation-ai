@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.domain.ports.repositories.model_inference_repository import ModelInferenceRepository
 from neural_recommendation.infrastructure.deep_learning.model_inference_manager import ModelInferenceManager

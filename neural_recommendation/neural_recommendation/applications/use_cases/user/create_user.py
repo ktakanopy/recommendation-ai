@@ -1,6 +1,3 @@
-import uuid
-from datetime import datetime
-
 from neural_recommendation.applications.interfaces.dtos.user import UserPublic, UserSchema
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository

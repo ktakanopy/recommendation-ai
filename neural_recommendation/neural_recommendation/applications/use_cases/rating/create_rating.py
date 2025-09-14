@@ -1,6 +1,6 @@
-from typing import List
 import uuid
 from datetime import datetime
+from typing import List
 
 from neural_recommendation.applications.interfaces.dtos.rating import RatingPublic, RatingSchema
 from neural_recommendation.domain.models.rating import Rating as DomainRating

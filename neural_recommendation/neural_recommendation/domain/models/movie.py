@@ -1,7 +1,6 @@
-import uuid
 from typing import List
-from pydantic import Field
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class Movie(BaseModel):

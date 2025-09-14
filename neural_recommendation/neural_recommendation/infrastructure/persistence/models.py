@@ -3,8 +3,8 @@ from datetime import datetime
 from typing import List
 
 from sqlalchemy import ForeignKey, String, func
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry, relationship
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, registry, relationship
 
 table_registry = registry()
 

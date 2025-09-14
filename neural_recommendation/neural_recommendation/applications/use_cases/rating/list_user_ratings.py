@@ -1,6 +1,7 @@
 from typing import List
 
 from neural_recommendation.applications.interfaces.schemas import RatingPublic
+
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 
 

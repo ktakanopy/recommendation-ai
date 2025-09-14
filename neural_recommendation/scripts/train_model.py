@@ -1,17 +1,13 @@
 import argparse
 import os
 import pickle
-import sys
 
 import pandas as pd
 import torch
-
-
 from candidate_generator import CandidateGenerator
+from ncf_feature_processor import NCFFeatureProcessor as FeatureProcessor
 from trainer import NCFTrainer
 
-
-from ncf_feature_processor import NCFFeatureProcessor as FeatureProcessor
 from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 

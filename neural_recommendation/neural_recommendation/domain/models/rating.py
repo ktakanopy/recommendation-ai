@@ -1,6 +1,7 @@
 import uuid
-from pydantic import BaseModel
 from datetime import datetime
+
+from pydantic import BaseModel
 
 
 class Rating(BaseModel):

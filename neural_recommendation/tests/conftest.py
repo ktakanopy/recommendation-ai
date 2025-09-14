@@ -1,3 +1,4 @@
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, Mock
@@ -13,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
 from neural_recommendation.app import app
+from neural_recommendation.domain.models.rating import Rating
+from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.infrastructure.persistence.database import get_session
@@ -281,11 +284,6 @@ def sample_movie_mappings():
 @pytest.fixture
 def sample_user_with_ratings():
     """Sample user with ratings for testing"""
-    import uuid
-    from datetime import datetime
-
-    from neural_recommendation.domain.models.rating import Rating
-    from neural_recommendation.domain.models.user import User
 
     ratings = [
         Rating(id=uuid.uuid4(), user_id=uuid.uuid4(), movie_id=uuid.uuid4(), rating=4.5, timestamp=datetime.now()),
@@ -307,7 +305,6 @@ def sample_user_with_ratings():
 @pytest.fixture
 def sample_user_without_ratings():
     """Sample user without ratings for testing"""
-    from neural_recommendation.domain.models.user import User
 
     return User(
         id=2,

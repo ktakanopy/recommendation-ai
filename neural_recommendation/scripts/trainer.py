@@ -6,13 +6,13 @@ import numpy as np
 import pandas as pd
 import torch
 from movie_dataset import MovieLensDataset
-from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel as NCF
-from torch.utils.data import DataLoader
-from tqdm import tqdm
-
 from ncf_feature_processor import (
     NCFFeatureProcessor as FeatureProcessor,
 )
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from neural_recommendation.domain.models.deep_learning.ncf_model import NCFModel as NCF
 
 
 class NCFTrainer:
@@ -148,7 +148,7 @@ class NCFTrainer:
                 candidate_items = precomputed_candidates.get(u, [])
 
                 if i not in candidate_items:
-                    candidate_items = candidate_items + [i]
+                    candidate_items += [i]
 
                 valid_candidates = [
                     movie_id

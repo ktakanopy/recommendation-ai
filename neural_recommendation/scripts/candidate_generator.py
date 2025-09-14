@@ -1,13 +1,11 @@
-from functools import lru_cache
-from collections import defaultdict
-import pickle
 import os
-import numpy as np
-from scipy.sparse import csr_matrix
-from sklearn.metrics.pairwise import cosine_similarity
-from tqdm import tqdm
+import pickle
+from collections import defaultdict
+from functools import lru_cache
 
+import numpy as np
 from ncf_feature_processor import NCFFeatureProcessor
+from tqdm import tqdm
 
 
 # global data structures for fast candidate generation

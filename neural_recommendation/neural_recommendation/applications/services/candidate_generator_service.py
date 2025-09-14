@@ -1,14 +1,11 @@
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
+from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
 from neural_recommendation.domain.exceptions import CandidateGeneratorError, ValidationError
 from neural_recommendation.domain.ports.repositories.movie_features_repository import MovieFeaturesRepository
 from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
-
-from neural_recommendation.infrastructure.logging.logger import Logger
-from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
-
-logger = Logger.get_logger(__name__)
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 
 
 # global data structures for fast candidate generation
@@ -18,10 +15,12 @@ class CandidateGeneratorService:
         movie_features_repository: MovieFeaturesRepository,
         user_features_repository: UserFeaturesRepository,
         feature_service: NCFFeatureService,
+        logger: LoggerPort,
     ):
         self.movie_features_repository = movie_features_repository
         self.user_features_repository = user_features_repository
         self.feature_processor = feature_service
+        self.logger = logger
 
     def _removed_rated_items(self, available_items: List[int], user_ratings: List[Tuple[int, float]]):
         """Remove items that the user has already rated"""
@@ -38,7 +37,7 @@ class CandidateGeneratorService:
 
     def _generate_collaborative_candidates(
         self, user_demographics: Dict[str, Any], user_ratings: List[Tuple[int, float]], num_candidates=100
-    ):  # TODO: check type in this features
+    ):
         """Optimized collaborative filtering using pre-computed similarity"""
         user_feature = self.feature_processor.process_user_demographics(user_demographics)
         similar_user_ids = self.user_features_repository.get_similar_users(user_feature, top_k=num_candidates)

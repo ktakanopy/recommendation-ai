@@ -1,7 +1,6 @@
 from typing import List, Optional
 
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from neural_recommendation.domain.models.rating import Rating

@@ -1,5 +1,6 @@
-from pydantic import BaseModel
 from typing import TYPE_CHECKING, List, Optional
+
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from neural_recommendation.infrastructure.config.settings import MLModelSettings
