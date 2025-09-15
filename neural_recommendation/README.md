@@ -37,10 +37,10 @@ flowchart LR
         MM[Movie Metadata Genres/Titles]
     end
 
-    FE[NCFFeatureService\nFeatureEncoderRepository: Pickle]
-    UF[UserFeaturesRepository\nAnnoy index]
-    MF[MovieFeaturesRepository\nAnnoy index + Popularity Cache]
-    CG[CandidateGeneratorService\npopularity + collaborative + content/hybrid]
+    FE[NCFFeatureService - FeatureEncoderRepository: Pickle]
+    UF[UserFeaturesRepository: Annoy index]
+    MF[MovieFeaturesRepository: Annoy index ]
+    CG[CandidateGeneratorService popularity + collaborative + content/hybrid]
     OUT[List of Recommendations]
 
     U --> FE
@@ -52,9 +52,9 @@ flowchart LR
     MF --> CG
 
     subgraph NCF[NCFModel PyTorch]
-        NCFU["User Tower\n128->64 (BN+ReLU)"]
-        NCFM["Movie Tower\n256->128->64 (BN+ReLU)"]
-        NCFX["Concat\n128->64->32"]
+        NCFU["User Tower: 128->64 (BN+ReLU)"]
+        NCFM["Movie Tower: 256->128->64 (BN+ReLU)"]
+        NCFX["Concat: 128->64->32"]
     end
 
     SIG((Sigmoid))
@@ -67,7 +67,7 @@ flowchart LR
     SIG --> OUT
 
     subgraph Inference
-        LM[ModelInferenceManager\nload NCF weights]
+        LM[ModelInferenceManager - load NCF weights]
     end
     LM --> NCF
 
