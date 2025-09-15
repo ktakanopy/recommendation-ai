@@ -118,9 +118,7 @@ class NCFModel(nn.Module):
 
             # Verify model compatibility
             if checkpoint.get("model_type") != "NCF":
-                self.logger_port.warning(
-                    f"Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}"
-                )
+                self.logger_port.warning(f"Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}")
 
             if checkpoint.get("user_feature_dim") != self.user_feature_dim:
                 raise ValueError(
@@ -143,9 +141,7 @@ class NCFModel(nn.Module):
             if "sampling_strategy" in checkpoint:
                 self.sampling_strategy = checkpoint["sampling_strategy"]
 
-            self.logger_port.info(
-                f"Model weights loaded successfully from {filepath}"
-            )
+            self.logger_port.info(f"Model weights loaded successfully from {filepath}")
             self.logger_port.info(
                 f"Loaded configuration: negative_method={getattr(self, 'negative_method', None)}, "
                 f"sampling_strategy={getattr(self, 'sampling_strategy', None)}"
@@ -183,9 +179,7 @@ class NCFModel(nn.Module):
             model.load_state_dict(checkpoint["state_dict"])
             model.to("cuda" if torch.cuda.is_available() else "cpu")
 
-            logger_port.info(
-                f"Complete model loaded successfully from {filepath}"
-            )
+            logger_port.info(f"Complete model loaded successfully from {filepath}")
             return model
 
         except Exception as e:

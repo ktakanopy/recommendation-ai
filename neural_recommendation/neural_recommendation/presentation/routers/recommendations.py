@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 
 from neural_recommendation.applications.interfaces.dtos.recommendation import (
+    GetOnboardingMoviesRequest,
     NewUserRecommendationRequest,
     OnboardingMoviesResultResponse,
     RecommendationResultResponse,
@@ -45,11 +46,11 @@ async def get_recommendations_cold_start(
 @router.get("/onboarding-movies", response_model=OnboardingMoviesResultResponse)
 async def get_onboarding_movies(
     recommendation_service: Annotated[RecommendationApplicationServicePort, Depends(get_recommendation_service)],
-    num_movies: int = Query(10, ge=1, le=100),
+    request: GetOnboardingMoviesRequest,
 ):
     """Get onboarding movies for new user"""
     try:
-        result = await recommendation_service.get_onboarding_movies(num_movies=num_movies)
+        result = await recommendation_service.get_onboarding_movies(num_movies=request.num_movies)
         return OnboardingMoviesResultResponse(**result.model_dump())
     except ValueError as e:
         logger.warning(f"Bad request in onboarding movies: {e}")

@@ -9,6 +9,7 @@ from neural_recommendation.infrastructure.logging.logger import Logger
 
 logger = Logger.get_logger(__name__)
 
+
 class ModelInferenceManager:
     """Infrastructure service for managing NCF model inference"""
 

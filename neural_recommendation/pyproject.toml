@@ -42,7 +42,7 @@ testcontainers = "^4.10.0"
 
 [tool.ruff]
 line-length = 120
-extend-exclude = ['migrations']
+extend-exclude = ['migrations', 'scripts']
 
 [tool.ruff.lint]
 preview = true
@@ -55,6 +55,7 @@ ignore = [
     "PLR0914",  # Too many local variables (common in ML evaluation functions)
     "PLW2901",  # Variable overwriting in loop (common pattern in ML tensor processing)
 ]
+
 
 [tool.ruff.format]
 preview = true

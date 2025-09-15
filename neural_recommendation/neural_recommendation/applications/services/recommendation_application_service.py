@@ -50,7 +50,9 @@ class RecommendationApplicationService(RecommendationApplicationServicePort):
         # Load NCF model
         model = self._model_repository.load_model()
         # Initialize NCF feature processor
-        feature_service = NCFFeatureService(feature_encoder_repository=self.feature_encoder_repository, logger=self.logger)
+        feature_service = NCFFeatureService(
+            feature_encoder_repository=self.feature_encoder_repository, logger=self.logger
+        )
 
         self.candidate_generator = CandidateGeneratorService(
             movie_features_repository=self.movie_features_repository,

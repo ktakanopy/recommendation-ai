@@ -1,3 +1,7 @@
+from unittest.mock import MagicMock
+
+import pytest
+
 from neural_recommendation.applications.services.candidate_generator_service import (
     CandidateGeneratorService,
 )
@@ -7,18 +11,16 @@ from neural_recommendation.applications.services.ncf_feature_service import (
 from neural_recommendation.applications.use_cases.deep_learning.cold_start_recommender import (
     ColdStartRecommender,
 )
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.infrastructure.adapters.repositories.annoy_movie_features_repository import (
     AnnoyMovieFeaturesRepository,
 )
 from neural_recommendation.infrastructure.adapters.repositories.annoy_user_features_repository import (
     AnnoyUserFeaturesRepository,
 )
-from unittest.mock import MagicMock
-import pytest
 from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
     ModelInferenceManagerAdapter,
 )
-from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.infrastructure.adapters.repositories.pickle_feature_encoder_repository import (
     PickleFeatureEncoderRepository,
 )
@@ -45,8 +47,12 @@ def build_recommender(num_candidates: int = 50, logger_port: LoggerPort | None =
     encoder_repo = PickleFeatureEncoderRepository(
         data_path=settings.processed_data_dir, encoder_path=settings.feature_encoder_index_path
     )
-    feature_service = NCFFeatureService(feature_encoder_repository=encoder_repo, logger=logger_port or MagicMock(spec=LoggerPort))
-    candidate_gen = CandidateGeneratorService(movie_repo, user_repo, feature_service, logger=logger_port or MagicMock(spec=LoggerPort))
+    feature_service = NCFFeatureService(
+        feature_encoder_repository=encoder_repo, logger=logger_port or MagicMock(spec=LoggerPort)
+    )
+    candidate_gen = CandidateGeneratorService(
+        movie_repo, user_repo, feature_service, logger=logger_port or MagicMock(spec=LoggerPort)
+    )
     model_repo = ModelInferenceManagerAdapter(
         models_dir=settings.models_dir,
         device=settings.device,
