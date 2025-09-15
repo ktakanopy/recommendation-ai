@@ -37,6 +37,17 @@ class SQLAlchemyMovieRepository(MovieRepository):
         movies = result.scalars().all()
         return [self._to_domain(movie) for movie in movies]
 
+    async def search_by_title(self, title: str, offset: int = 0, limit: int = 100) -> List[DomainMovie]:
+        query = (
+            select(SQLMovie)
+            .where(SQLMovie.title.ilike(f"%{title}%"))
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(query)
+        movies = result.scalars().all()
+        return [self._to_domain(movie) for movie in movies]
+
     async def create(self, movie: DomainMovie) -> DomainMovie:
         sql_movie = SQLMovie(
             title=movie.title,

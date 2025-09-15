@@ -1,0 +1,26 @@
+[project]
+name = "big-boss"
+version = "0.1.0"
+description = "Telegram onboarding and recommendation bot using LangGraph"
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+authors = [{ name = "Kevin" }]
+
+dependencies = [
+  "langgraph>=0.2.39",
+  "openai>=1.51.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.2.1",
+  "httpx>=0.27.2",
+  "python-telegram-bot>=21.6",
+  "taskipy (>=1.14.1,<2.0.0)",
+  "langchain-openai (>=0.3.33,<0.4.0)",
+  "load-dotenv (>=0.1.0,<0.2.0)"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.taskipy.tasks]
+run = "python -m big_boss.presentation.telegram.runner"

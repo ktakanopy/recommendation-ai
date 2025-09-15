@@ -18,6 +18,10 @@ class MovieRepository(ABC):
         pass
 
     @abstractmethod
+    async def search_by_title(self, title: str, offset: int = 0, limit: int = 100) -> List[Movie]:
+        pass
+
+    @abstractmethod
     async def create(self, movie: Movie) -> Movie:
         pass
 

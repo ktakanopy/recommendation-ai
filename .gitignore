@@ -3,6 +3,7 @@
 __pycache__/
 *.py[cod]
 *.index
+*.env
 # C extensions
 *.so
 *.parquet
