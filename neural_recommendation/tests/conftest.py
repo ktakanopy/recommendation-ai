@@ -19,7 +19,7 @@ from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.infrastructure.persistence.database import get_session
-from neural_recommendation.infrastructure.persistence.models import User, table_registry
+from neural_recommendation.infrastructure.persistence.models import table_registry
 
 pwd_context = PasswordHash.recommended()
 

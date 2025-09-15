@@ -9,4 +9,3 @@ class DeleteAllUsersUseCase:
     async def execute(self) -> Message:
         deleted = await self.user_repository.delete_all()
         return Message(message=f"Deleted {deleted} users")
-

@@ -1,4 +1,5 @@
 import argparse
+
 import requests
 
 
@@ -21,5 +22,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

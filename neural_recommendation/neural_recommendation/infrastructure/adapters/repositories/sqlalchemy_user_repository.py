@@ -1,8 +1,7 @@
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete
 
 from neural_recommendation.domain.models.rating import Rating
 from neural_recommendation.domain.models.user import User as DomainUser

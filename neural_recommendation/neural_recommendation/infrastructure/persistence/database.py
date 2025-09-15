@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engin
 
 from neural_recommendation.infrastructure.config.settings import Settings
 
-
 _engine: Optional[AsyncEngine] = None
 
 

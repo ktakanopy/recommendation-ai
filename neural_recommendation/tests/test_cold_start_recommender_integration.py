@@ -13,16 +13,24 @@ from neural_recommendation.infrastructure.adapters.repositories.annoy_movie_feat
 from neural_recommendation.infrastructure.adapters.repositories.annoy_user_features_repository import (
     AnnoyUserFeaturesRepository,
 )
+from unittest.mock import MagicMock
+import pytest
 from neural_recommendation.infrastructure.adapters.repositories.model_inference_manager_adapter import (
     ModelInferenceManagerAdapter,
 )
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.infrastructure.adapters.repositories.pickle_feature_encoder_repository import (
     PickleFeatureEncoderRepository,
 )
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
 
 
-def build_recommender(num_candidates: int = 50):
+@pytest.fixture
+def logger_port():
+    return MagicMock(spec=LoggerPort)
+
+
+def build_recommender(num_candidates: int = 50, logger_port: LoggerPort | None = None):
     settings = MLModelSettings()
     movie_repo = AnnoyMovieFeaturesRepository(
         data_path=settings.processed_data_dir,
@@ -37,13 +45,14 @@ def build_recommender(num_candidates: int = 50):
     encoder_repo = PickleFeatureEncoderRepository(
         data_path=settings.processed_data_dir, encoder_path=settings.feature_encoder_index_path
     )
-    feature_service = NCFFeatureService(feature_encoder_repository=encoder_repo)
-    candidate_gen = CandidateGeneratorService(movie_repo, user_repo, feature_service)
+    feature_service = NCFFeatureService(feature_encoder_repository=encoder_repo, logger=logger_port or MagicMock(spec=LoggerPort))
+    candidate_gen = CandidateGeneratorService(movie_repo, user_repo, feature_service, logger=logger_port or MagicMock(spec=LoggerPort))
     model_repo = ModelInferenceManagerAdapter(
         models_dir=settings.models_dir,
         device=settings.device,
         data_dir=settings.data_dir,
         processed_data_dir=settings.processed_data_dir,
+        logger_port=logger_port or MagicMock(spec=LoggerPort),
     )
     model = model_repo.load_model()
     recommender = ColdStartRecommender(
@@ -52,13 +61,14 @@ def build_recommender(num_candidates: int = 50):
         feature_service=feature_service,
         candidate_generator=candidate_gen,
         liked_threshold=4.0,
+        logger=logger_port or MagicMock(spec=LoggerPort),
         num_candidates=num_candidates,
     )
     return recommender
 
 
-def test_recommend_for_new_user_integration_filters_and_sorts():
-    recommender = build_recommender(num_candidates=100)
+def test_recommend_for_new_user_integration_filters_and_sorts(logger_port):
+    recommender = build_recommender(num_candidates=100, logger_port=logger_port)
     user_demographics = {"gender": "M", "age": 25, "occupation": 1}
     user_ratings = []
     results = recommender.recommend_for_new_user(user_demographics, user_ratings, num_recommendations=5)
@@ -70,8 +80,8 @@ def test_recommend_for_new_user_integration_filters_and_sorts():
     assert scores == sorted(scores, reverse=True)
 
 
-def test_get_onboarding_movies_integration():
-    recommender = build_recommender(num_candidates=100)
+def test_get_onboarding_movies_integration(logger_port):
+    recommender = build_recommender(num_candidates=100, logger_port=logger_port)
     res = recommender.get_onboarding_movies(num_movies=3)
     assert isinstance(res, dict)
     assert len(res.keys()) >= 1

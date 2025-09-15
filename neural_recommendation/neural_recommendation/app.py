@@ -1,6 +1,6 @@
+from contextlib import asynccontextmanager
 from http import HTTPStatus
 
-from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from neural_recommendation.applications.interfaces.dtos.message import Message

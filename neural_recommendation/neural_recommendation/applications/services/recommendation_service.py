@@ -95,5 +95,3 @@ class RecommendationService:
                     OnboardingMovie(movie_id=movie_id, title=movie.title, genres=movie.genres)
                 )
         return OnboardingMoviesResult(recommendations=recommendations)
-
-

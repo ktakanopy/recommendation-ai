@@ -1,9 +1,11 @@
 import logging
+
 import torch
 from torch import nn
 
-logger = logging.getLogger(__name__)
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 
+logger = logging.getLogger(__name__)
 
 
 class NCFModel(nn.Module):
@@ -22,6 +24,7 @@ class NCFModel(nn.Module):
         self,
         user_feature_dim,
         movie_feature_dim,
+        logger_port: LoggerPort,
     ):
         super().__init__()
 
@@ -40,6 +43,7 @@ class NCFModel(nn.Module):
         self.movie_bn2 = nn.BatchNorm1d(128)
         self.movie_fc3 = nn.Linear(128, 64)
         self.movie_bn3 = nn.BatchNorm1d(64)
+        self.logger_port = logger_port
 
         # NCF layers
         self.fc1 = nn.Linear(in_features=128, out_features=64)
@@ -114,7 +118,9 @@ class NCFModel(nn.Module):
 
             # Verify model compatibility
             if checkpoint.get("model_type") != "NCF":
-                logger.warning(f"Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}")
+                self.logger_port.warning(
+                    f"Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}"
+                )
 
             if checkpoint.get("user_feature_dim") != self.user_feature_dim:
                 raise ValueError(
@@ -137,8 +143,10 @@ class NCFModel(nn.Module):
             if "sampling_strategy" in checkpoint:
                 self.sampling_strategy = checkpoint["sampling_strategy"]
 
-            logger.info(f"Model weights loaded successfully from {filepath}")
-            logger.info(
+            self.logger_port.info(
+                f"Model weights loaded successfully from {filepath}"
+            )
+            self.logger_port.info(
                 f"Loaded configuration: negative_method={getattr(self, 'negative_method', None)}, "
                 f"sampling_strategy={getattr(self, 'sampling_strategy', None)}"
             )
@@ -149,7 +157,7 @@ class NCFModel(nn.Module):
             raise RuntimeError(f"Error loading model weights: {str(e)}")
 
     @classmethod
-    def load_model(cls, filepath):
+    def load_model(cls, filepath, logger_port: LoggerPort):
         """
         Class method to load a complete model from saved weights
 
@@ -168,13 +176,16 @@ class NCFModel(nn.Module):
             model = cls(
                 user_feature_dim=checkpoint["user_feature_dim"],
                 movie_feature_dim=checkpoint["movie_feature_dim"],
+                logger_port=logger_port,
             )
 
             # Load weights
             model.load_state_dict(checkpoint["state_dict"])
             model.to("cuda" if torch.cuda.is_available() else "cpu")
 
-            logger.info(f"Complete model loaded successfully from {filepath}")
+            logger_port.info(
+                f"Complete model loaded successfully from {filepath}"
+            )
             return model
 
         except Exception as e:

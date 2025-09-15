@@ -19,6 +19,7 @@ from neural_recommendation.domain.ports.repositories.rating_repository import Ra
 from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
 from neural_recommendation.domain.ports.services.auth_service import AuthService
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
 )
@@ -45,11 +46,12 @@ from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_
 )
 from neural_recommendation.infrastructure.adapters.services.jwt_auth_service import JWTAuthService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings, Settings
-from neural_recommendation.infrastructure.persistence.database import get_session
 from neural_recommendation.infrastructure.logging.std_logger_adapter import StdLoggerAdapter
-from neural_recommendation.domain.ports.services.logger import LoggerPort
+from neural_recommendation.infrastructure.persistence.database import get_session
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
 def get_logger() -> LoggerPort:
     return StdLoggerAdapter(__name__)
 
@@ -100,6 +102,7 @@ async def get_current_user(
 def get_model_inference_repository(
     config: Annotated[ModelConfig, Depends(get_model_config)],
     ml_settings: Annotated[MLModelSettings, Depends(get_ml_settings)],
+    logger_port: Annotated[LoggerPort, Depends(get_logger)],
 ) -> ModelInferenceRepository:
     """Get model inference repository with injected config"""
     return ModelInferenceManagerAdapter(
@@ -107,6 +110,7 @@ def get_model_inference_repository(
         device=config.device,
         data_dir=ml_settings.data_dir,
         processed_data_dir=ml_settings.processed_data_dir,
+        logger_port=logger_port,
     )
 
 
