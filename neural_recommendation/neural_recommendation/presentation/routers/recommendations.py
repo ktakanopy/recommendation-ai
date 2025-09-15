@@ -1,9 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from neural_recommendation.applications.interfaces.dtos.recommendation import (
-    GetOnboardingMoviesRequest,
     NewUserRecommendationRequest,
     OnboardingMoviesResultResponse,
     RecommendationResultResponse,
@@ -33,21 +32,33 @@ async def get_recommendations_cold_start(
 
         return RecommendationResultResponse(**result.model_dump())
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating cold start recommendations: {str(e)}")
+    except ValueError as e:
+        logger.warning(f"Bad request in cold-start recommendations: {e}")
+        raise HTTPException(status_code=400, detail="Invalid request for recommendations")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unhandled error generating cold start recommendations")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/onboarding-movies", response_model=OnboardingMoviesResultResponse)
 async def get_onboarding_movies(
     recommendation_service: Annotated[RecommendationApplicationServicePort, Depends(get_recommendation_service)],
-    request: GetOnboardingMoviesRequest,
+    num_movies: int = Query(10, ge=1, le=100),
 ):
     """Get onboarding movies for new user"""
     try:
-        result = await recommendation_service.get_onboarding_movies(num_movies=request.num_movies)
+        result = await recommendation_service.get_onboarding_movies(num_movies=num_movies)
         return OnboardingMoviesResultResponse(**result.model_dump())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting onboarding movies: {str(e)}")
+    except ValueError as e:
+        logger.warning(f"Bad request in onboarding movies: {e}")
+        raise HTTPException(status_code=400, detail="Invalid request for onboarding movies")
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Unhandled error getting onboarding movies")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/health")

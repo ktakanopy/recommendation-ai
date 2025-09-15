@@ -29,6 +29,7 @@ class CandidateGenerator:
         self.item_popularity = self.train_ratings["movie_id"].value_counts()
         self.popular_items = self.item_popularity.index.tolist()
 
+
     def _precompute_movie_genres(self):
         """Create movie-to-genres dictionary for O(1) lookups"""
         self.movie_to_genres = {}

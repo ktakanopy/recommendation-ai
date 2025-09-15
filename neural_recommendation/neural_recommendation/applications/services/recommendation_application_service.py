@@ -1,5 +1,6 @@
 from neural_recommendation.applications.services.candidate_generator_service import CandidateGeneratorService
 from neural_recommendation.applications.services.ncf_feature_service import NCFFeatureService
+from neural_recommendation.applications.services.recommendation_service import RecommendationService
 from neural_recommendation.domain.models.deep_learning.onboarding_movies import OnboardingMoviesResult
 from neural_recommendation.domain.models.deep_learning.recommendation import RecommendationResult
 from neural_recommendation.domain.ports.repositories.feature_encoder_repository import FeatureEncoderRepository
@@ -9,12 +10,11 @@ from neural_recommendation.domain.ports.repositories.movie_repository import Mov
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
+from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
 )
-from neural_recommendation.applications.services.recommendation_service import RecommendationService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings
-from neural_recommendation.domain.ports.services.logger import LoggerPort
 
 
 class RecommendationApplicationService(RecommendationApplicationServicePort):

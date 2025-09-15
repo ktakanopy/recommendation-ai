@@ -1,4 +1,3 @@
-import uuid
 from typing import List, Optional
 
 from sqlalchemy import select
@@ -63,7 +62,7 @@ class SQLAlchemyMovieRepository(MovieRepository):
         await self.session.refresh(sql_movie)
         return self._to_domain(sql_movie)
 
-    async def delete(self, movie_id: uuid.UUID) -> bool:
+    async def delete(self, movie_id: int) -> bool:
         query = select(SQLMovie).where(SQLMovie.id == movie_id)
         result = await self.session.execute(query)
         movie = result.scalar_one_or_none()

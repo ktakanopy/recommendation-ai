@@ -1,5 +1,9 @@
+import logging
 import torch
 from torch import nn
+
+logger = logging.getLogger(__name__)
+
 
 
 class NCFModel(nn.Module):
@@ -95,7 +99,6 @@ class NCFModel(nn.Module):
             "model_type": "NCF",
         }
         torch.save(model_state, filepath)
-        print(f"Model weights saved to {filepath}")
 
     def load_weights(self, filepath, strict=True):
         """
@@ -111,7 +114,7 @@ class NCFModel(nn.Module):
 
             # Verify model compatibility
             if checkpoint.get("model_type") != "NCF":
-                print(f"Warning: Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}")
+                logger.warning(f"Model type mismatch. Expected NCF, got {checkpoint.get('model_type')}")
 
             if checkpoint.get("user_feature_dim") != self.user_feature_dim:
                 raise ValueError(
@@ -134,10 +137,10 @@ class NCFModel(nn.Module):
             if "sampling_strategy" in checkpoint:
                 self.sampling_strategy = checkpoint["sampling_strategy"]
 
-            print(f"Model weights loaded successfully from {filepath}")
-            print(
-                f"Loaded configuration: negative_method={self.negative_method}, "
-                f"sampling_strategy={self.sampling_strategy}"
+            logger.info(f"Model weights loaded successfully from {filepath}")
+            logger.info(
+                f"Loaded configuration: negative_method={getattr(self, 'negative_method', None)}, "
+                f"sampling_strategy={getattr(self, 'sampling_strategy', None)}"
             )
 
         except FileNotFoundError:
@@ -171,7 +174,7 @@ class NCFModel(nn.Module):
             model.load_state_dict(checkpoint["state_dict"])
             model.to("cuda" if torch.cuda.is_available() else "cpu")
 
-            print(f"Complete model loaded successfully from {filepath}")
+            logger.info(f"Complete model loaded successfully from {filepath}")
             return model
 
         except Exception as e:
