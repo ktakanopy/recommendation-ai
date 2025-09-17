@@ -53,5 +53,5 @@ class NCFFeatureService:
             return feature_vector
 
         except Exception as e:
-            self.logger.error(f"Error processing user demographics: {str(e)}")
-            raise FeatureProcessingError("Failed to process user demographics") from e
+            self.logger.error(f"Error processing user demographics: {str(e)} for user demographics: {user_demographics}")
+            raise FeatureProcessingError(f"Failed to process user demographics: {str(e)} for user demographics: {user_demographics}")

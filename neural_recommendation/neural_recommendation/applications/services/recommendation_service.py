@@ -46,7 +46,7 @@ class RecommendationService:
         user: User,
         num_recommendations: int = 10,
     ) -> RecommendationResult:
-        self.logger.info(f"Generating cold start recommendations for user: {user.username} (ID: {user.id})")
+        self.logger.info(f"Generating cold start recommendations for user: {user.name} (ID: {user.id})")
 
         user_demographics = {"gender": user.gender, "age": user.age, "occupation": user.occupation}
 

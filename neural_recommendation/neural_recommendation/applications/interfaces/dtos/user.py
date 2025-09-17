@@ -1,15 +1,11 @@
-from typing import Optional
-
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
 
 
 class UserSchema(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    occupation: Optional[int] = None
+    name: str
+    age: int
+    gender: str
+    occupation: int
 
 
 class Message(BaseModel):
@@ -18,11 +14,10 @@ class Message(BaseModel):
 
 class UserPublic(BaseModel):
     id: int
-    username: str
-    email: EmailStr
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    occupation: Optional[int] = None
+    name: str
+    age: int
+    gender: str
+    occupation: int
     model_config = ConfigDict(from_attributes=True)
 
 

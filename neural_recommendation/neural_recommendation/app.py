@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from neural_recommendation.applications.interfaces.dtos.message import Message
 from neural_recommendation.infrastructure.logging.logger import setup_logging
 from neural_recommendation.infrastructure.persistence.database import dispose_engine, get_engine, set_engine
-from neural_recommendation.presentation.routers import auth, movies, ratings, recommendations, users
+from neural_recommendation.presentation.routers import movies, ratings, recommendations, users
 
 setup_logging()
 
@@ -24,7 +24,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(users.router)
-app.include_router(auth.router)
 app.include_router(recommendations.router)
 app.include_router(ratings.router)
 app.include_router(movies.router)

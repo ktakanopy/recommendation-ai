@@ -7,12 +7,10 @@ from neural_recommendation.domain.models.rating import Rating
 
 
 class User(BaseModel):
-    username: str
-    email: str
-    password_hash: str
-    age: Optional[int] = None
-    gender: Optional[str] = None
-    occupation: Optional[int] = None
+    name: str
+    age: int
+    gender: str
+    occupation: int
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     ratings: Optional[List[Rating]] = Field(default_factory=list)

@@ -13,6 +13,14 @@ class GetUsersUseCase:
         user_publics = []
         for user in users:
             if user.id is not None:
-                user_publics.append(UserPublic(id=user.id, username=user.username, email=user.email))
+                user_publics.append(
+                    UserPublic(
+                        id=user.id,
+                        name=user.name,
+                        age=user.age,
+                        gender=user.gender,
+                        occupation=user.occupation,
+                    )
+                )
 
         return UserList(users=user_publics)

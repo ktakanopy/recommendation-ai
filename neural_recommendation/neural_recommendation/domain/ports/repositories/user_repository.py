@@ -15,19 +15,7 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_email(self, email: str) -> Optional[User]:
-        pass
-
-    @abstractmethod
-    async def get_by_username(self, username: str) -> Optional[User]:
-        pass
-
-    @abstractmethod
     async def get_user_ratings(self, user_id: int) -> List[Rating]:
-        pass
-
-    @abstractmethod
-    async def get_by_username_or_email(self, username: str, email: str) -> Optional[User]:
         pass
 
     @abstractmethod

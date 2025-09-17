@@ -1,14 +1,12 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from neural_recommendation.applications.services.recommendation_application_service import (
     RecommendationApplicationService,
 )
 from neural_recommendation.domain.models.deep_learning.model_config import ModelConfig
-from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.feature_encoder_repository import (
     FeatureEncoderRepository,
 )
@@ -18,7 +16,6 @@ from neural_recommendation.domain.ports.repositories.movie_repository import Mov
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
 from neural_recommendation.domain.ports.repositories.user_features_repository import UserFeaturesRepository
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
-from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.domain.ports.services.logger import LoggerPort
 from neural_recommendation.domain.ports.services.recommendation_application_service_port import (
     RecommendationApplicationServicePort,
@@ -44,12 +41,9 @@ from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_ratin
 from neural_recommendation.infrastructure.adapters.repositories.sqlalchemy_user_repository import (
     SQLAlchemyUserRepository,
 )
-from neural_recommendation.infrastructure.adapters.services.jwt_auth_service import JWTAuthService
 from neural_recommendation.infrastructure.config.settings import MLModelSettings, Settings
 from neural_recommendation.infrastructure.logging.std_logger_adapter import StdLoggerAdapter
 from neural_recommendation.infrastructure.persistence.database import get_session
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def get_logger() -> LoggerPort:
@@ -76,27 +70,8 @@ def get_movie_repository(session: Annotated[AsyncSession, Depends(get_session)])
     return SQLAlchemyMovieRepository(session)
 
 
-def get_auth_service(
-    session: Annotated[AsyncSession, Depends(get_session)], settings: Annotated[Settings, Depends(get_settings)]
-) -> AuthService:
-    return JWTAuthService(session, settings)
-
-
 def get_rating_repository(session: Annotated[AsyncSession, Depends(get_session)]) -> RatingRepository:
     return SQLAlchemyRatingRepository(session)
-
-
-async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)], auth_service: Annotated[AuthService, Depends(get_auth_service)]
-) -> User:
-    user = await auth_service.get_current_user(token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return user
 
 
 def get_model_inference_repository(

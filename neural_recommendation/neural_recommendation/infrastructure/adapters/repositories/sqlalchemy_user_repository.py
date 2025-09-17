@@ -16,9 +16,7 @@ class SQLAlchemyUserRepository(UserRepository):
 
     def _to_domain(self, sql_user: SQLUser) -> DomainUser:
         return DomainUser(
-            username=sql_user.username,
-            email=sql_user.email,
-            password_hash=sql_user.password,
+            name=sql_user.name,
             age=sql_user.age,
             gender=sql_user.gender,
             occupation=sql_user.occupation,
@@ -28,11 +26,8 @@ class SQLAlchemyUserRepository(UserRepository):
         )
 
     def _to_sql(self, domain_user: DomainUser) -> SQLUser:
-        """Convert domain model to SQLAlchemy model"""
         return SQLUser(
-            username=domain_user.username,
-            email=domain_user.email,
-            password=domain_user.password_hash,
+            name=domain_user.name,
             age=domain_user.age,
             gender=domain_user.gender,
             occupation=domain_user.occupation,
@@ -41,9 +36,7 @@ class SQLAlchemyUserRepository(UserRepository):
     async def create(self, user: DomainUser) -> DomainUser:
         # Step 1: Create the user entity first
         sql_user = SQLUser(
-            username=user.username,
-            email=user.email,
-            password=user.password_hash,
+            name=user.name,
             age=user.age,
             gender=user.gender,
             occupation=user.occupation,
@@ -69,20 +62,6 @@ class SQLAlchemyUserRepository(UserRepository):
 
     async def get_by_id(self, user_id: int) -> Optional[DomainUser]:
         sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.id == user_id))
-        return self._to_domain(sql_user) if sql_user else None
-
-    async def get_by_email(self, email: str) -> Optional[DomainUser]:
-        sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.email == email))
-        return self._to_domain(sql_user) if sql_user else None
-
-    async def get_by_username(self, username: str) -> Optional[DomainUser]:
-        sql_user = await self.session.scalar(select(SQLUser).where(SQLUser.username == username))
-        return self._to_domain(sql_user) if sql_user else None
-
-    async def get_by_username_or_email(self, username: str, email: str) -> Optional[DomainUser]:
-        sql_user = await self.session.scalar(
-            select(SQLUser).where((SQLUser.username == username) | (SQLUser.email == email))
-        )
         return self._to_domain(sql_user) if sql_user else None
 
     async def get_user_ratings(self, user_id: int) -> List[Rating]:
@@ -114,9 +93,7 @@ class SQLAlchemyUserRepository(UserRepository):
         if not sql_user:
             raise ValueError("User not found")
 
-        sql_user.username = user.username
-        sql_user.email = user.email
-        sql_user.password = user.password_hash
+        sql_user.name = user.name
         sql_user.age = user.age
         sql_user.gender = user.gender
         sql_user.occupation = user.occupation

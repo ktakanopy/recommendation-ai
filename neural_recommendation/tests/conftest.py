@@ -1,14 +1,13 @@
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
 import torch
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from pwdlib import PasswordHash
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.postgres import PostgresContainer
@@ -17,11 +16,8 @@ from neural_recommendation.app import app
 from neural_recommendation.domain.models.rating import Rating
 from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.user_repository import UserRepository
-from neural_recommendation.domain.ports.services.auth_service import AuthService
 from neural_recommendation.infrastructure.persistence.database import get_session
 from neural_recommendation.infrastructure.persistence.models import table_registry
-
-pwd_context = PasswordHash.recommended()
 
 
 @pytest.fixture
@@ -141,28 +137,17 @@ class BaseIntegrationTest:
         app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def token(client, user):
-    response = client.post(
-        "/auth/token",
-        data={"username": user.email, "password": user.clean_password},
-    )
-    return response.json()["access_token"]
-
-
 @pytest_asyncio.fixture
 async def user(session):
     user = User(
         username="Teste",
-        email="teste@test.com",
-        password=pwd_context.hash("testtest"),
+        age=25,
+        gender=1,
+        occupation=1,
     )
     session.add(user)
     await session.commit()
     await session.refresh(user)
-
-    # Add clean_password as a dynamic attribute for testing
-    setattr(user, "clean_password", "testtest")
 
     return user
 
@@ -205,12 +190,6 @@ def mock_db_time():
 def mock_user_repository():
     """Mock user repository for use case testing"""
     return AsyncMock(spec=UserRepository)
-
-
-@pytest.fixture
-def mock_auth_service():
-    """Mock auth service for use case testing"""
-    return MagicMock(spec=AuthService)
 
 
 # Recommendation testing fixtures
@@ -292,11 +271,8 @@ def sample_user_with_ratings():
 
     return User(
         id=1,
-        username="testuser",
-        email="test@example.com",
-        password_hash="hashed_password",
         age=25,
-        gender="M",
+        gender=1,
         occupation=1,
         ratings=ratings,
     )
@@ -308,11 +284,8 @@ def sample_user_without_ratings():
 
     return User(
         id=2,
-        username="newuser",
-        email="new@example.com",
-        password_hash="hashed_password",
         age=30,
-        gender="F",
+        gender=2,
         occupation=2,
         ratings=None,
     )

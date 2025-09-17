@@ -17,9 +17,10 @@ class UserFactory:
         self,
         *,
         id: Optional[int] = None,
-        username: str = "testuser",
-        email: str = "test@example.com",
-        password: str = "testpassword123",
+        name: str = "testuser",
+        age: int = 20,
+        gender: int = 1,
+        occupation: int = 1,
         created_at: Optional[datetime] = None,
     ) -> DomainUser:
         """Create a domain user for testing"""
@@ -28,9 +29,10 @@ class UserFactory:
 
         return DomainUser(
             id=id,
-            username=username,
-            email=email,
-            password_hash=self.pwd_context.hash(password),
+            name=name,
+            age=age,
+            gender=gender,
+            occupation=occupation,
             created_at=created_at,
         )
 
@@ -38,26 +40,28 @@ class UserFactory:
         self,
         *,
         id: Optional[int] = None,
-        username: str = "testuser",
-        email: str = "test@example.com",
-        password: str = "testpassword123",
+        name: str = "testuser",
+        age: int = 20,
+        gender: int = 1,
+        occupation: int = 1,
         created_at: Optional[datetime] = None,
     ) -> SQLUser:
         """Create a SQL user for testing"""
         user = SQLUser(
-            username=username,
-            email=email,
-            password=self.pwd_context.hash(password),
+            name=name,
+            age=age,
+            gender=gender,
+            occupation=occupation,
         )
         if id is not None:
             user.id = id
         return user
 
     def create_user_data(
-        self, *, username: str = "testuser", email: str = "test@example.com", password: str = "testpassword123"
+        self, *, name: str = "testuser", age: int = 20, gender: int = 1, occupation: int = 1
     ) -> dict:
         """Create user data dictionary for API tests"""
-        return {"username": username, "email": email, "password": password}
+        return {"name": name, "age": age, "gender": gender, "occupation": occupation}
 
 
 # Global factory instance

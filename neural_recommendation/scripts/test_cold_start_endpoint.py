@@ -9,13 +9,11 @@ from neural_recommendation.applications.interfaces.dtos.rating import RatingSche
 
 
 def create_user(
-    base_url: str, username: str, email: str, password: str, age: int, gender: str, occupation: int, timeout: float
+    base_url: str, name: str, age: int, gender: int, occupation: int, timeout: float
 ) -> tuple[bool, Optional[int]]:
     url = base_url.rstrip("/") + "/users/"
     payload = {
-        "username": username,
-        "email": email,
-        "password": password,
+        "name": name,
         "age": age,
         "gender": gender,
         "occupation": occupation,
@@ -23,27 +21,6 @@ def create_user(
     r = requests.post(url, json=payload, timeout=timeout)
     return r.json()
 
-
-def login(base_url: str, email: str, password: str, timeout: float) -> str | None:
-    url = base_url.rstrip("/") + "/auth/token"
-    data = {"username": email, "password": password}
-    headers = {"Content-Type": "application/x-www-form-urlencoded"}
-    r = requests.post(url, data=data, headers=headers, timeout=timeout)
-    if r.status_code == 200:
-        return r.json().get("access_token")
-    return None
-
-
-def get_current_user_id(base_url: str, token: str, timeout: float) -> Optional[int]:
-    url = base_url.rstrip("/") + "/users/me"
-    headers = {"Authorization": f"Bearer {token}"}
-    r = requests.get(url, headers=headers, timeout=timeout)
-    if r.status_code == 200:
-        try:
-            return int(r.json().get("id"))
-        except Exception:
-            return None
-    return None
 
 
 def fetch_movies(base_url: str, limit: int, timeout: float) -> List[dict]:
@@ -85,7 +62,7 @@ def main() -> None:
     parser.add_argument("--num_users", type=int, default=2)
     parser.add_argument("--ratings_per_user", type=int, default=5)
     parser.add_argument("--movies_fetch_limit", type=int, default=500)
-    parser.add_argument("--password", type=str, default="password123")
+ 
     parser.add_argument("--timeout", type=float, default=10.0)
     parser.add_argument("--num_movies", type=int, default=5)
     args = parser.parse_args()
@@ -99,14 +76,13 @@ def main() -> None:
         sys.exit(1)
 
     for i in range(1, args.num_users + 1):
-        email_random_part = random.randint(1000, 9999)
-        username = f"user_{i}_{email_random_part}"
-        email = f"user_{i}_{email_random_part}@example.google.com"
+        name = f"user_{i}"
         age = random.choice([18, 25, 35, 45])
-        gender = random.choice(["M", "F"])
+        gender = random.choice([0, 1])
+        gender = "M" if gender == 0 else "F"
         occupation = random.randint(0, 20)
         print("** Creating user...")
-        created = create_user(args.base_url, username, email, args.password, age, gender, occupation, args.timeout)
+        created = create_user(args.base_url, name, age, gender, occupation, args.timeout)
         print("Created user:", created)
         try:
             user_id = created["id"]

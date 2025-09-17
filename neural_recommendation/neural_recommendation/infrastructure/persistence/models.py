@@ -29,12 +29,10 @@ class User:
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True)
-    password: Mapped[str]
-    email: Mapped[str] = mapped_column(unique=True)
-    age: Mapped[int] = mapped_column(nullable=True, default=None)
-    gender: Mapped[str] = mapped_column(nullable=True, default=None)
-    occupation: Mapped[str] = mapped_column(nullable=True, default=None)
+    name: Mapped[str]
+    age: Mapped[int]
+    gender: Mapped[str]
+    occupation: Mapped[int]
     ratings: Mapped[List[Rating]] = relationship("Rating", back_populates="user", default_factory=list, init=False)
 
     created_at: Mapped[datetime] = mapped_column(init=False, server_default=func.now())

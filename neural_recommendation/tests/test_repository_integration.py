@@ -27,19 +27,21 @@ class TestSQLAlchemyUserRepository(BaseIntegrationTest):
     @pytest.mark.asyncio
     async def test_create_user(self, user_repository):
         """Test creating a user through repository"""
-        domain_user = DomainUser(username="testuser", email="test@example.com", password_hash="hashed_password")
+        domain_user = DomainUser(name="testuser", age=20, gender=1, occupation=1)
 
         created_user = await user_repository.create(domain_user)
 
         assert created_user.id is not None
-        assert created_user.username == "testuser"
-        assert created_user.email == "test@example.com"
+        assert created_user.name == "testuser"
+        assert created_user.age == 20
+        assert created_user.gender == 1
+        assert created_user.occupation == 1
 
     @pytest.mark.asyncio
     async def test_get_user_by_id(self, user_repository):
         """Test retrieving user by ID"""
         # Create user first
-        domain_user = DomainUser(username="getuser", email="get@example.com", password_hash="password")
+        domain_user = DomainUser(name="getuser", age=20, gender=1, occupation=1)
         created_user = await user_repository.create(domain_user)
 
         # Retrieve by ID
@@ -47,69 +49,47 @@ class TestSQLAlchemyUserRepository(BaseIntegrationTest):
 
         assert found_user is not None
         assert found_user.id == created_user.id
-        assert found_user.username == "getuser"
-
-    @pytest.mark.asyncio
-    async def test_get_user_by_username(self, user_repository):
-        """Test retrieving user by username"""
-        domain_user = DomainUser(username="uniqueuser", email="unique@example.com", password_hash="password")
-        await user_repository.create(domain_user)
-
-        found_user = await user_repository.get_by_username("uniqueuser")
-
-        assert found_user is not None
-        assert found_user.username == "uniqueuser"
-
-    @pytest.mark.asyncio
-    async def test_get_user_by_email(self, user_repository):
-        """Test retrieving user by email"""
-        domain_user = DomainUser(username="emailuser", email="email@example.com", password_hash="password")
-        await user_repository.create(domain_user)
-
-        found_user = await user_repository.get_by_email("email@example.com")
-
-        assert found_user is not None
-        assert found_user.email == "email@example.com"
+        assert found_user.name == "getuser"
 
     @pytest.mark.asyncio
     async def test_get_all_users(self, user_repository):
         """Test retrieving all users"""
         # Create multiple users
         users_data = [
-            ("user1", "user1@example.com"),
-            ("user2", "user2@example.com"),
-            ("user3", "user3@example.com"),
+            ("user1"),
+            ("user2"),
+            ("user3"),
         ]
 
-        for username, email in users_data:
-            domain_user = DomainUser(username=username, email=email, password_hash="password")
+        for name in users_data:
+            domain_user = DomainUser(name=name, age=20, gender=1, occupation=1)
             await user_repository.create(domain_user)
 
         all_users = await user_repository.get_all()
 
         assert len(all_users) == 3
-        usernames = [user.username for user in all_users]
-        assert "user1" in usernames
-        assert "user2" in usernames
-        assert "user3" in usernames
+        names = [user.name for user in all_users]
+        assert "user1" in names
+        assert "user2" in names
+        assert "user3" in names
 
     @pytest.mark.asyncio
     async def test_update_user(self, user_repository):
         """Test updating a user"""
-        domain_user = DomainUser(username="updateuser", email="update@example.com", password_hash="password")
+        domain_user = DomainUser(name="updateuser", age=20, gender=1, occupation=1)
         created_user = await user_repository.create(domain_user)
 
         # Update user
-        created_user.email = "updated@example.com"
+        created_user.name = "updateduser"
         updated_user = await user_repository.update(created_user)
 
-        assert updated_user.email == "updated@example.com"
+        assert updated_user.name == "updateduser"
         assert updated_user.id == created_user.id
 
     @pytest.mark.asyncio
     async def test_delete_user(self, user_repository):
         """Test deleting a user"""
-        domain_user = DomainUser(username="deleteuser", email="delete@example.com", password_hash="password")
+        domain_user = DomainUser(name="deleteuser", age=20, gender=1, occupation=1)
         created_user = await user_repository.create(domain_user)
         user_id = created_user.id
 
@@ -124,10 +104,4 @@ class TestSQLAlchemyUserRepository(BaseIntegrationTest):
     async def test_user_not_found(self, user_repository):
         """Test handling of non-existent users"""
         user = await user_repository.get_by_id(999)
-        assert user is None
-
-        user = await user_repository.get_by_username("nonexistent")
-        assert user is None
-
-        user = await user_repository.get_by_email("nonexistent@example.com")
         assert user is None

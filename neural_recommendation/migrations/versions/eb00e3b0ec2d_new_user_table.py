@@ -1,8 +1,8 @@
-"""reset table
+"""new_user_table
 
-Revision ID: 5652e8e360aa
+Revision ID: eb00e3b0ec2d
 Revises: 
-Create Date: 2025-09-12 17:21:34.813322
+Create Date: 2025-09-16 21:54:52.003304
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '5652e8e360aa'
+revision: str = 'eb00e3b0ec2d'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -29,16 +29,12 @@ def upgrade() -> None:
     )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('username', sa.String(), nullable=False),
-    sa.Column('password', sa.String(), nullable=False),
-    sa.Column('email', sa.String(), nullable=False),
-    sa.Column('age', sa.Integer(), nullable=True),
-    sa.Column('gender', sa.String(), nullable=True),
-    sa.Column('occupation', sa.String(), nullable=True),
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('age', sa.Integer(), nullable=False),
+    sa.Column('gender', sa.Integer(), nullable=False),
+    sa.Column('occupation', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
-    sa.UniqueConstraint('username')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('ratings',
     sa.Column('id', sa.Uuid(), nullable=False),

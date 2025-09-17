@@ -5,14 +5,12 @@ from fastapi import APIRouter, Depends
 
 from neural_recommendation.applications.interfaces.dtos.rating import RatingPublic, RatingSchema
 from neural_recommendation.applications.use_cases.rating.create_rating import CreateRatingUseCase
-from neural_recommendation.domain.models.user import User
 from neural_recommendation.domain.ports.repositories.rating_repository import RatingRepository
-from neural_recommendation.infrastructure.config.dependencies import get_current_user, get_rating_repository
+from neural_recommendation.infrastructure.config.dependencies import get_rating_repository
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
 
 RatingRepositoryDep = Annotated[RatingRepository, Depends(get_rating_repository)]
-CurrentUserDep = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("/", status_code=HTTPStatus.CREATED, response_model=List[RatingPublic])
